@@ -1,0 +1,4 @@
+name: TexasHoldem_kotlin
+version: @version@
+main: ltotj.minecraft.texasholdem_kotlin.Main
+api-version: 1.16
