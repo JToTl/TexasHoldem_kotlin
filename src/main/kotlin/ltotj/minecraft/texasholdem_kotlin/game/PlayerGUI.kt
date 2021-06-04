@@ -103,6 +103,27 @@ class PlayerGUI(private val seat: Int){
         setGUIItem(25, Material.GOLD_BLOCK, "§6現在の賭けチップ合計", listOf("§e§l$pot§w枚"))
     }
 
+    fun setWinner(evenOrOdd:Boolean,head:ItemStack){
+        if(evenOrOdd){
+            inv.setItem(20,head)
+            setGUIItem(21,Material.GOLD_BLOCK,"§l§aW§bI§cN§dN§eE§dR§f!")
+            inv.setItem(22,head)
+            setGUIItem(23,Material.GOLD_BLOCK,"§l§aW§bI§cN§dN§eE§dR§f!")
+            inv.setItem(24,head)
+        }
+        else{
+            setGUIItem(20,Material.GOLD_BLOCK,"§l§aW§bI§cN§dN§eE§dR§f!")
+            inv.setItem(21,head)
+            setGUIItem(22,Material.GOLD_BLOCK,"§l§aW§bI§cN§dN§eE§dR§f!")
+            inv.setItem(23,head)
+            setGUIItem(24,Material.GOLD_BLOCK,"§l§aW§bI§cN§dN§eE§dR§f!")
+        }
+    }
+
+    fun setDrawGame(){
+        for(i in 0..4)setGUIItem(20+i,Material.BARRIER,"DRAW",listOf("引き分け 同率一位のプレイヤーに賞金が分配されます"))
+    }
+
     fun setRaiseButton(){
         for(i in 45..52){
             setGUIItem(i, Material.valueOf(config.getString("raise.$i.material")), config.getString("raise.$i.name"))
@@ -113,7 +134,7 @@ class PlayerGUI(private val seat: Int){
         setGUIItem(chipPosition(seat) - 3, Material.DIAMOND_BLOCK, "§l§wターンプレイヤー")
     }
 
-    fun reloadRaiseButton(add: Int){
+    fun reloadRaiseButton(add:Int){
         setGUIItem(49, Material.valueOf(config.getString("raise.49.material")), config.getString("raise.49.name"), listOf("§c" + add + "枚追加"))
     }
 

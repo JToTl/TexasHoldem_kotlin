@@ -1,3 +1,13 @@
 package ltotj.minecraft.texasholdem_kotlin
 
-class EventList 
+import org.bukkit.event.Listener
+
+object EventList:Listener {
+
+    
+
+
+
+
+
+}

@@ -9,14 +9,18 @@ import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.meta.SkullMeta
+import java.lang.Double.max
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.math.round
 
-class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val rate:Double):Thread(){
+
+class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, val rate: Double):Thread(){
 
     private val playerList=ArrayList<PlayerData>()
-    private val seatMap=HashMap<UUID,Int>()
+    private val seatMap=HashMap<UUID, Int>()
     private val deck=Deck()
     val firstChips=config.getInt("firstNumberOfChips")
     var community=ArrayList<Card>()
@@ -40,6 +44,14 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
         var playerChips=firstChips
         var action=""
 
+        fun getHead():ItemStack{
+            val item = ItemStack(Material.PLAYER_HEAD)
+            val skull = (item.itemMeta as SkullMeta)
+            skull.owningPlayer = player
+            item.itemMeta=skull
+            return item
+        }
+
         fun call():Boolean{
             if(bet+addedChips-instBet>playerChips){
                 addedChips=0
@@ -47,7 +59,7 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
             }
             bet+=addedChips
             playerChips+=instBet-bet
-            setChips(seat,instBet,bet)
+            setChips(seat, instBet, bet)
             instBet=bet
             addedChips=0
             action="done"
@@ -80,13 +92,13 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
             return true
         }
 
-        fun setCard(setSeat:Int,dif:Int){
-            if(setSeat==seat)playerGUI.setCard(cardPosition(setSeat)+dif,playerCards.cards[dif])
-            else playerGUI.setFaceDownCard(cardPosition(setSeat)+dif)
+        fun setUpCard(setSeat: Int, dif: Int){
+            if(setSeat==seat)playerGUI.setCard(cardPosition(setSeat) + dif, playerCards.cards[dif])
+            else playerGUI.setFaceDownCard(cardPosition(setSeat) + dif)
         }
     }
 
-    private fun actionTime(dif:Int) {
+    private fun actionTime(dif: Int) {
         turnCount += dif
         while ((foldedList.size < playerList.size && playerList[turnSeat()].instBet != bet) || turnCount < playerList.size + dif) {
             setGUI(turnSeat())
@@ -107,7 +119,7 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
                 when (playerList[turnSeat()].action) {
                     "Fold" -> playerList[turnSeat()].fold()
                     "Call" -> if (!playerList[turnSeat()].call()) playerList[turnSeat()].action = ""
-                    "AllIn"->if(!playerList[turnSeat()].allIn())playerList[turnSeat()].action=""
+                    "AllIn" -> if (!playerList[turnSeat()].allIn()) playerList[turnSeat()].action = ""
                 }
                 if(playerList[turnSeat()].action=="done"){
                     playerList[turnSeat()].action=""
@@ -122,7 +134,7 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
         for(i in 0..playerList.size){
             if(!foldedList.contains(i)&&!allInList.contains(i)){
                 removeItem(chipPosition(i))
-                playSoundAlPl(Sound.BLOCK_GRAVEL_STEP,2F)
+                playSoundAlPl(Sound.BLOCK_GRAVEL_STEP, 2F)
                 sleep(500);
             }
         }
@@ -130,10 +142,10 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
         resetBet()
     }
 
-    fun addPlayer(player:Player):Boolean{
+    fun addPlayer(player: Player):Boolean{
         if(playerList.size>maxSeat||isRunning)return false
         seatMap[player.uniqueId]=playerList.size
-        playerList.add(PlayerData(player,playerList.size))
+        playerList.add(PlayerData(player, playerList.size))
         return true
     }
 
@@ -164,11 +176,11 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
         for(playerData in playerList)playerData.instBet=0
     }
 
-    private fun setChips(seat:Int,start:Int,end:Int){
+    private fun setChips(seat: Int, start: Int, end: Int){
         for(i in start..end){
-            playSoundAlPl(Sound.BLOCK_CHAIN_STEP,2F)
+            playSoundAlPl(Sound.BLOCK_CHAIN_STEP, 2F)
             for(playerData in playerList){
-                playerData.playerGUI.setChips(seat,i,rate)
+                playerData.playerGUI.setChips(seat, i, rate)
             }
             sleep(200)
         }
@@ -178,22 +190,30 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
         for(i in 0..4){
             val card=deck.draw()
             community[i]=card
-            playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN,2F)
-            for(playerData in playerList)playerData.playerGUI.setFaceDownCard(20+i)
+            playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
+            for(playerData in playerList)playerData.playerGUI.setFaceDownCard(20 + i)
             sleep(350)
         }
     }
 
-    private fun setCoin(seat:Int){
+    private fun setCoin(seat: Int){
         for(playerData in playerList){
-            playerData.playerGUI.setCoin(seat,playerList[seat].player.name,playerList[seat].playerChips)
+            playerData.playerGUI.setCoin(seat, playerList[seat].player.name, playerList[seat].playerChips)
         }
     }
 
-    private fun setPlayerCard(seat:Int,dif:Int){
+    private fun setPlayerCard(seat: Int, dif: Int){
         for(playerData in playerList){
-            playerData.setCard(seat,dif)
+            playerData.setUpCard(seat, dif)
         }
+    }
+
+    private fun setWinnerHead(evenOrOdd:Boolean,head:ItemStack){
+        for(playerData in playerList)playerData.playerGUI.setWinner(evenOrOdd, head)
+    }
+
+    private fun setDrawItem(){
+        for(playerData in playerList)playerData.playerGUI.setDrawGame()
     }
 
     private fun setPot(){
@@ -206,30 +226,52 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
         }
     }
 
-    private fun displayHand(seat:Int){
-        playerList[seat].hand=playerList[seat].playerCards.getHand(community)
-        val ins=getDigit(playerList[seat].hand,0,2)
-        if(ins==18||ins==15){
-            val insSuit=getDigit(playerList[seat].hand,13,14)
-            val flag=false
-            for(i in 0..4){
-                for(){}
-                if(flag){
-
+    private fun displayHand(seat: Int) {
+        playerList[seat].hand = playerList[seat].playerCards.getHand(community)
+        val openCom = ArrayList<Int>()
+        val openPlC = ArrayList<Int>()
+        val ins = getDigit(playerList[seat].hand, 0, 2)
+        val insSuit = getDigit(playerList[seat].hand, 13, 14)
+        var flag = false
+        for (i in 0..4) {
+            for (j in 0..4) {
+                if (!openCom.contains(j)&&((ins!=18&&ins!=15)||community[j].suit == insSuit)&& community[j].num == getDigit(playerList[seat].hand, 2 * i + 2, 2 * i + 4)) {
+                    openCom.add(j)
+                    flag = true
+                    break;
                 }
             }
+            if (flag) {
+                flag = false
+                continue
+            }
+            if (!openPlC.contains(0)&&((ins!=18&&ins!=15)||playerList[seat].playerCards.cards[0].suit == insSuit)&&playerList[seat].playerCards.cards[0].num== getDigit(playerList[seat].hand, 2 * i + 2, 2 * i + 4)) openPlC.add(0)
+            else openPlC.add(1)
+        }
+        for(i in 0..4){
+            if(openPlC.contains(i))for(playerData in playerList)playerData.playerGUI.enchantItem(cardPosition(seat) + i)
+            if(openCom.contains(i))for(playerData in playerList)playerData.playerGUI.enchantItem(20 + i)
+            else removeItem(20 + i)
         }
     }
 
-    private fun getDigit(f:Double,start:Int,end:Int):Int{
-        val num=f.toString()
-        if(num.length<end)return 0
-        return num.substring(start,end).toInt()
+    private fun reloadGUI(seat: Int){
+        for(playerData in playerList){
+            for(i in 0..4)playerData.playerGUI.setCard(20 + i, community[i])
+            playerData.playerGUI.setCard(cardPosition(seat), playerList[seat].playerCards.cards[0])
+            playerData.playerGUI.setCard(cardPosition(seat) + 1, playerList[seat].playerCards.cards[1])
+        }
     }
 
-    private fun removeItem(slot:Int){
+    private fun getDigit(f: Double, start: Int, end: Int):Int{
+        val num=f.toString()
+        if(num.length<end)return 0
+        return num.substring(start, end).toInt()
+    }
+
+    private fun removeItem(slot: Int){
         for(playerData in playerList){
-            playerData.playerGUI.inv.setItem(slot, ItemStack(Material.STONE,0))
+            playerData.playerGUI.inv.setItem(slot, ItemStack(Material.STONE, 0))
         }
     }
 
@@ -258,90 +300,115 @@ class TexasHoldem (val masterPlayer:Player,val maxSeat: Int,val minSeat:Int,val 
     }
 
     private fun openPlCard(seat: Int){
-        playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN,2F)
+        playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
         for(i in 0..playerList.size){
-            playerList[i].playerGUI.setCard(cardPosition(seat),playerList[seat].playerCards.cards[0])
-            playerList[i].playerGUI.setCard(cardPosition(seat)+1,playerList[seat].playerCards.cards[1])
+            playerList[i].playerGUI.setCard(cardPosition(seat), playerList[seat].playerCards.cards[0])
+            playerList[i].playerGUI.setCard(cardPosition(seat) + 1, playerList[seat].playerCards.cards[1])
         }
     }
 
-    private fun openCommunityCard(num:Int){
-        for(playerData in playerList)playerData.playerGUI.setCard(20+num,community[num])
+    private fun setItemAlPl(slot:Int,item:ItemStack){
+        for(playerData in playerList)playerData.playerGUI.inv.setItem(slot,item)
+    }
+
+    private fun openCommunityCard(num: Int){
+        for(playerData in playerList)playerData.playerGUI.setCard(20 + num, community[num])
         sleep(1000)
     }
 
-    private fun setClock(time:Int){
-        for(playerData in playerList){
-            playerData.playerGUI.inv.setItem(26, ItemStack(Material.CLOCK,time))
-        }
+    private fun setClock(time: Int){
+        setItemAlPl(26, ItemStack(Material.CLOCK, time))
     }
 
-    private fun setGUI(turnS:Int){
+    private fun setGUI(turnS: Int){
         for(i in 0..playerList.size){
             if(i==turnS)playerList[i].playerGUI.setActionButton()
             playerList[i].playerGUI.setTurnPBlo(turnS)
         }
     }
 
-    fun openInv(uuid:UUID){
+    fun openInv(uuid: UUID){
         getPlayer(uuid)!!.openInventory(playerList[seatMap[uuid]!!].playerGUI.inv)
     }
 
-    private fun playSoundAlPl(sound: Sound, pitch:Float){
+    private fun playSoundAlPl(sound: Sound, pitch: Float){
         for(playerData in playerList){
-            playerData.player.playSound(playerData.player.location,sound,2F,pitch)
+            playerData.player.playSound(playerData.player.location, sound, 2F, pitch)
         }
     }
 
-    override fun run(){
-        for(i in 0..59){
-            if(i%10==0)Bukkit.broadcast(Component.text("§l"+masterPlayer.name+"§aが§7§lテキサスホールデム§aを募集中・・・残り"+(60-i)+"秒 §r/poker join "+masterPlayer.name+" §l§aで参加 §4注意 参加必要金額"+firstChips*rate))
-            if(playerList.size==maxSeat)break
+    override fun run() {
+        for (i in 0..59) {
+            if (i % 10 == 0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + firstChips * rate))
+            if (playerList.size == maxSeat) break
             sleep(1000)
         }
-        isRunning=true
-        val seatSize=playerList.size
-        if(seatSize<minSeat){
-            Bukkit.broadcast(Component.text("§l"+masterPlayer.name+"§aの§7テキサスホールデム§aは人が集まらなかったので中止しました"))
+        isRunning = true
+        val seatSize = playerList.size
+        if (seatSize < minSeat) {
+            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人が集まらなかったので中止しました"))
             endGame()
             return
         }
-        for(i in 0..seatSize*roundTimes){
+        for (times in 0..seatSize * roundTimes) {
             reset()
-        }
-        for(i in 0..seatSize){
-            playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN,2F)
-            setPlayerCard(i,0)
-            sleep(500)
-            playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN,2F)
-            setPlayerCard(i,1)
-            sleep(500)
-        }
-        setCommunityCard()
-        //SBとBBの強制ベット
-        for(i in 0..1){
-            playerList[turnSeat()].addedChips=1
-            if(playerList[turnSeat()].call())setCoin(turnSeat())
-        }
-        //プリフロップ
-        actionTime(2)
-        openCommunityCard(0)
-        openCommunityCard(1)
-        openCommunityCard(2)
-        //フロップ
-        actionTime(0)
-        openCommunityCard(3)
-        //ターン
-        actionTime(0)
-        openCommunityCard(4)
-        //リバー
-        actionTime(0)
-        playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN,2F)
-        for(i in 0..seatSize)if(!foldedList.contains(i))openPlCard(i)
-        sleep(2000)
-        for(i in 0..seatSize){
-            if(!foldedList.contains(i)){}
+            for (i in 0..seatSize) {
+                playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
+                setPlayerCard(i, 0)
+                sleep(500)
+                playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
+                setPlayerCard(i, 1)
+                sleep(500)
+            }
+            setCommunityCard()
+            //SBとBBの強制ベット
+            for (i in 0..1) {
+                playerList[turnSeat()].addedChips = 1
+                if (playerList[turnSeat()].call()) setCoin(turnSeat())
+            }
+            //プリフロップ
+            actionTime(2)
+            openCommunityCard(0)
+            openCommunityCard(1)
+            openCommunityCard(2)
+            //フロップ
+            actionTime(0)
+            openCommunityCard(3)
+            //ターン
+            actionTime(0)
+            openCommunityCard(4)
+            //リバー
+            actionTime(0)
+            playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
+            for (i in 0..seatSize) if (!foldedList.contains(i)) openPlCard(i)
+            sleep(2000)
+            var winHand = 0.0
+            for (i in 0..seatSize) {
+                if (!foldedList.contains(i)) {//displayHand実行によりhandが保存される
+                    winHand = max(winHand, round((playerList[i].hand / 10)))
+                    displayHand(i)
+                    sleep(5000)
+                    reloadGUI(i)
+                }
+            }
+            for (i in 0..seatSize) if (!foldedList.contains(i) && round((playerList[i].hand / 10)) == winHand) winners.add(i)
+            //pot分配
+            for (i in winners) playerList[i].playerChips += pot / winners.size
+            if (winners.size == 1) for (i in 0..7) {
+                setWinnerHead(i % 2 == 0, playerList[winners[0]].getHead())
+                sleep(500)
+            }
+            else {
+                setDrawItem()
+                sleep(4000)
+            }
+            firstSeat+=1
+            for(i in 0..seatSize){
+                removeItem(cardPosition(i))
+                removeItem(cardPosition(i)+1)
+            }
+            for(i in 0..4)removeItem(20+i)
+            firstSeat+=1
         }
     }
-
 }
