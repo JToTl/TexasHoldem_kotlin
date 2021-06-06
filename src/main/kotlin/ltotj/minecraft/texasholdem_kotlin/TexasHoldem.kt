@@ -1,7 +1,15 @@
 package ltotj.minecraft.texasholdem_kotlin
 
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.config
-import ltotj.minecraft.texasholdem_kotlin.game.*
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.config
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.mySQL
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.playable
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.plugin
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.texasHoldemTables
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.vault
+import ltotj.minecraft.texasholdem_kotlin.game.Card
+import ltotj.minecraft.texasholdem_kotlin.game.Deck
+import ltotj.minecraft.texasholdem_kotlin.game.PlayerCards
+import ltotj.minecraft.texasholdem_kotlin.game.PlayerGUI
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Bukkit.getPlayer
@@ -11,6 +19,8 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
 import java.lang.Double.max
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -29,11 +39,11 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
     var turnCount=0
     var firstSeat=0
     var roundTimes=1
-    var dealerButton=0
     var foldedList=ArrayList<Int>()
     var allInList=ArrayList<Int>()
     var winners=ArrayList<Int>()
     var isRunning=false
+    val startTime:Date = TODO()
 
     inner class PlayerData(val player: Player, private val seat: Int) {
         val playerGUI = PlayerGUI(seat)
@@ -42,7 +52,7 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
         var hand = 0.0
         var instBet = 0
         var playerChips=firstChips
-        var action=""
+        var action=false
 
         fun getHead():ItemStack{
             val item = ItemStack(Material.PLAYER_HEAD)
@@ -62,7 +72,7 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
             setChips(seat, instBet, bet)
             instBet=bet
             addedChips=0
-            action="done"
+            action=true
             return true
         }
 
@@ -71,16 +81,18 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
             playerCards.addCard(card)
         }
 
-        fun raiseBet():Boolean{
-            if(bet+addedChips-instBet>=playerChips||addedChips>=10)return false
-            addedChips+=1
-            action="done"
-            return true
+        fun raiseBet(){
+            if(addedChips==10)player.sendMessage("一度に上乗せできる枚数は十枚までです")
+            else if(bet+addedChips-instBet<playerChips&&addedChips<10) addedChips++
+        }
+
+        fun downBet(){
+            if(addedChips>0)addedChips--
         }
 
         fun fold() {
             foldedList.add(seat)
-            action="done"
+            action=true
         }
 
         fun allIn():Boolean{
@@ -88,7 +100,7 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
             instBet+=playerChips
             playerChips=0
             allInList.add(seat)
-            action="done"
+            action=true
             return true
         }
 
@@ -96,6 +108,7 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
             if(setSeat==seat)playerGUI.setCard(cardPosition(setSeat) + dif, playerCards.cards[dif])
             else playerGUI.setFaceDownCard(cardPosition(setSeat) + dif)
         }
+
     }
 
     private fun actionTime(dif: Int) {
@@ -116,13 +129,8 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
                     }
                     break
                 }
-                when (playerList[turnSeat()].action) {
-                    "Fold" -> playerList[turnSeat()].fold()
-                    "Call" -> if (!playerList[turnSeat()].call()) playerList[turnSeat()].action = ""
-                    "AllIn" -> if (!playerList[turnSeat()].allIn()) playerList[turnSeat()].action = ""
-                }
-                if(playerList[turnSeat()].action=="done"){
-                    playerList[turnSeat()].action=""
+                if(playerList[turnSeat()].action){
+                    playerList[turnSeat()].action=false
                     break
                 }
             }
@@ -208,7 +216,7 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
         }
     }
 
-    private fun setWinnerHead(evenOrOdd:Boolean,head:ItemStack){
+    private fun setWinnerHead(evenOrOdd: Boolean, head: ItemStack){
         for(playerData in playerList)playerData.playerGUI.setWinner(evenOrOdd, head)
     }
 
@@ -269,6 +277,11 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
         return num.substring(start, end).toInt()
     }
 
+    fun getPlData(uuid: UUID): PlayerData? {
+        if(!seatMap.containsKey(uuid))return null
+        return playerList[seatMap[uuid]!!]
+    }
+
     private fun removeItem(slot: Int){
         for(playerData in playerList){
             playerData.playerGUI.inv.setItem(slot, ItemStack(Material.STONE, 0))
@@ -295,8 +308,41 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
         return 0
     }
 
-    private fun endGame(){
+    private fun endGame() {
+        texasHoldemTables.remove(masterPlayer.uniqueId)
+        sleep(1000)
+        val query = StringBuilder().append("INSERT INTO texasholdem_gamedata(startTime,endTime,P1,P2,P3,P4,chipRate,firstChips,P1Chips,P2Chips,P3Chips,P4Chips) VALUES('" + getDateForMySQL(startTime) + "','" + getDateForMySQL(Date()) + "'")
+        for (i in 0..playerList.size) {
+            query.append(",'" + playerList[i].player.name + "'")
+            vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips)
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                playerList[i].player.closeInventory()
+            })
+        }
+        if (playerList.size != 4) for (i in playerList.size + 1..4) query.append(",null")
+        query.append(",'$rate','$firstChips'")
+        for (i in 0..playerList.size) query.append(",'" + playerList[i].playerChips + "'")
+        if (playerList.size != 4) for (i in playerList.size + 1..4) query.append(",0")
+        query.append(");")
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (mySQL.execute(query.toString())) {
+                playable=false
+                println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
+            }
+        })
+    }
 
+    private fun sendResult(){
+        val message=ArrayList<String>()
+        message.add("§4§l====================§a結果§4§l====================")
+        for(playerData in playerList)message.add("§e"+playerData.player.name+"：§d"+playerData.playerChips+"枚")
+        message.add("§4§l==========================================")
+        for(playerData in playerList)for(str in message)playerData.player.sendMessage(str)
+    }
+
+    private fun getDateForMySQL(date: Date): String? {
+        val df: DateFormat = SimpleDateFormat("yyyy-MM-dd HHH:mm:ss")
+        return df.format(date)
     }
 
     private fun openPlCard(seat: Int){
@@ -307,8 +353,8 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
         }
     }
 
-    private fun setItemAlPl(slot:Int,item:ItemStack){
-        for(playerData in playerList)playerData.playerGUI.inv.setItem(slot,item)
+    private fun setItemAlPl(slot: Int, item: ItemStack){
+        for(playerData in playerList)playerData.playerGUI.inv.setItem(slot, item)
     }
 
     private fun openCommunityCard(num: Int){
@@ -405,10 +451,12 @@ class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, 
             firstSeat+=1
             for(i in 0..seatSize){
                 removeItem(cardPosition(i))
-                removeItem(cardPosition(i)+1)
+                removeItem(cardPosition(i) + 1)
             }
-            for(i in 0..4)removeItem(20+i)
+            for(i in 0..4)removeItem(20 + i)
             firstSeat+=1
         }
+        endGame()
+        sendResult()
     }
 }

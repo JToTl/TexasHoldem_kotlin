@@ -1,8 +1,6 @@
 package ltotj.minecraft.texasholdem_kotlin.game
 
-
-import ltotj.minecraft.texasholdem_kotlin.Config
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.config
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.config
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack

@@ -1,13 +1,13 @@
 package ltotj.minecraft.texasholdem_kotlin
 
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.config
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.currentPlayers
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.config
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.currentPlayers
 import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.playable
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.texasHoldemTables
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.vault
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.playable
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.texasHoldemTables
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.vault
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Bukkit.getPlayer
