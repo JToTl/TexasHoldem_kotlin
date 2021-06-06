@@ -6,8 +6,8 @@ apply plugin: 'kotlin'
 group = 'ltotj.minecraft'
 version = '1.0-SNAPSHOT'
 
-sourceCompatibility = '1.10'
-targetCompatibility = '1.10'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 repositories {
     mavenCentral()
@@ -67,6 +67,6 @@ jar {
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
-        jvmTarget = "1.10"
+        jvmTarget = "1.8"
     }
 }
