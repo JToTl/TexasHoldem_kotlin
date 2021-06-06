@@ -1,7 +1,7 @@
 package ltotj.minecraft.texasholdem_kotlin
 
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.getPlData
-import ltotj.minecraft.texasholdem_kotlin.GlobalValues.Companion.getTable
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.getPlData
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.getTable
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.Sound
