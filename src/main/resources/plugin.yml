@@ -1,7 +1,7 @@
-name: TexasHoldem_kotlin
+name: TexasHoldem
 version: @version@
-main: ltotj.minecraft.texasholdem_kotlin.Main
-api-version: 1.16
+main: ltotj.minecraft.texasholdem.Main
+api-version: 1.17
 depend: [Vault]
 commands:
   poker:

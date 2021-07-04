@@ -1,13 +1,18 @@
-import org.apache.tools.ant.filters.ReplaceTokens
 
 apply plugin: 'java'
 apply plugin: 'kotlin'
+
 
 group = 'ltotj.minecraft'
 version = '1.0-SNAPSHOT'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
+
+configurations {
+    embed
+    compile.extendsFrom(embed)
+}
 
 repositories {
     mavenCentral()
@@ -23,13 +28,11 @@ repositories {
         name = 'sonatype'
         url = 'https://oss.sonatype.org/content/groups/public/'
     }
-    maven { url 'https://jitpack.io/' }
 }
 
 dependencies {
-    compileOnly 'com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT'
-    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compileOnly 'io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT'
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }
 
 import org.apache.tools.ant.filters.ReplaceTokens
@@ -37,7 +40,6 @@ sourceSets {
     main.java.srcDirs += 'src/main/kotlin'
     main.java.srcDirs += 'src/main/java'
 }
-
 processResources {
     from(sourceSets.main.resources.srcDirs) {
         filter ReplaceTokens, tokens: [version: version]
@@ -45,8 +47,8 @@ processResources {
 }
 buildscript {
     ext{
-        kotlin_version = '1.4.31'
-        spigot_version = '1.16.5-R0.1-SNAPSHOT'
+        kotlin_version = '1.4.21'
+        spigot_version = '1.17-R0.1-SNAPSHOT'
     }
     repositories {
         mavenCentral()
@@ -69,4 +71,11 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+}
+
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+dependencies {
+    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
 }
