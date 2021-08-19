@@ -1,4 +1,4 @@
-package ltotj.minecraft.texasholdem
+package ltotj.minecraft.texasholdem_kotlin
 
 import org.bukkit.Bukkit
 

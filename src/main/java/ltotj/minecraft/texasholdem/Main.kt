@@ -1,18 +1,23 @@
-package ltotj.minecraft.texasholdem
+package ltotj.minecraft.texasholdem_kotlin
 
+import ltotj.minecraft.texasholdem_kotlin.game.TexasHoldem
+import ltotj.minecraft.texasholdem_kotlin.game.command.AllinORFold_Command
+import ltotj.minecraft.texasholdem_kotlin.game.command.TexasHoldem_Command
+import ltotj.minecraft.texasholdem_kotlin.game.event.TexasHoldem_Event
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.collections.HashMap
 
 class Main : JavaPlugin() {
 
     companion object{
 
-        lateinit var texasHoldemTables: ConcurrentHashMap<UUID, TexasHoldem>
-        lateinit var currentPlayers:ConcurrentHashMap<UUID, UUID>
+        lateinit var con: Config
+        lateinit var texasHoldemTables:HashMap<UUID, TexasHoldem>
+        lateinit var currentPlayers:HashMap<UUID, UUID>
         lateinit var plugin: Plugin
         lateinit var playable:AtomicBoolean
         lateinit var vault: VaultManager
@@ -34,15 +39,17 @@ class Main : JavaPlugin() {
     override fun onEnable() {
         // Plugin startup logic
         saveDefaultConfig()
-        texasHoldemTables=ConcurrentHashMap()
-        currentPlayers=ConcurrentHashMap()
+        con=Config(this)
+        texasHoldemTables=HashMap()
+        currentPlayers=HashMap()
         plugin =this
         playable=AtomicBoolean()
         playable.set(config.getBoolean("canPlay"))
         vault = VaultManager(this)
-        mySQL = MySQLManager(this, "texasholdem.TexasHoldem")
-        server.pluginManager.registerEvents(EventList,this)
-        getCommand("poker")!!.setExecutor(Commands)
+        mySQL = MySQLManager(this, "TexasHoldem")
+        server.pluginManager.registerEvents(TexasHoldem_Event,this)
+        getCommand("poker")!!.setExecutor(TexasHoldem_Command)
+        getCommand("aof")!!.setExecutor(AllinORFold_Command)
     }
 
     override fun onDisable() {

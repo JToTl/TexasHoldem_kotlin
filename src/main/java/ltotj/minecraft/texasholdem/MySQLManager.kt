@@ -1,4 +1,4 @@
-package ltotj.minecraft.texasholdem
+package ltotj.minecraft.texasholdem_kotlin
 
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
@@ -49,7 +49,7 @@ class MySQLManager(private val plugin: JavaPlugin, private val conName: String) 
         PASS = plugin.config.getString("mysql.pass")
         PORT = plugin.config.getString("mysql.port")
         DB = plugin.config.getString("mysql.db")
-        plugin.getLogger().info("texasholdem.Config loaded  ${HOST} / ${USER}")
+        plugin.getLogger().info("texasholdem_kotlin.Config loaded  ${HOST} / ${USER}")
 
     }
 
