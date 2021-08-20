@@ -131,7 +131,7 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
         }
         for (times in 0..seatSize * roundTimes) {
             reset()//ここで所持金0のプレイヤーをカウント
-            if(noMoneyCount==playerList.size)break
+            if(noMoneyCount==playerList.size-1)break
             for (i in 0..seatSize) {
                 playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
                 setPlayerCard(i, 0)
