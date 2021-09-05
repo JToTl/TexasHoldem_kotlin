@@ -1,6 +1,7 @@
 package ltotj.minecraft.texasholdem_kotlin.game
 
 import ltotj.minecraft.texasholdem_kotlin.Main
+import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
 import ltotj.minecraft.texasholdem_kotlin.game.utility.PlayerGUI
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
@@ -18,15 +19,6 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
 
         override val playerGUI= PlayerGUI(seat,"AllinORFold")
 
-        override fun allIn():Boolean{
-            bet+=addedChips
-            playerChips+=instBet-bet
-            setChips(seat, instBet, bet)
-            instBet=bet
-            addedChips=0
-            action=true
-            return true
-        }
     }
 
     fun setAllinOrFoldButton(seat: Int){
@@ -118,14 +110,14 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
 
     override fun run() {
         for (i in 0..59) {
-            if (i % 10 == 0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + firstChips * rate),Server.BROADCAST_CHANNEL_USERS)
+            if (i % 20 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aを募集中・・・残り" + (60 - i) + "秒 §r/aof join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)),Server.BROADCAST_CHANNEL_USERS)
             if (playerList.size == maxSeat) break
             sleep(1000)
         }
         isRunning = true
         val seatSize = playerList.size
         if (seatSize < minSeat) {
-            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aは人が集まらなかったので中止しました"), Server.BROADCAST_CHANNEL_USERS)
+            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aは人数不足のため解散になりました"), Server.BROADCAST_CHANNEL_USERS)
             endGame()
             return
         }

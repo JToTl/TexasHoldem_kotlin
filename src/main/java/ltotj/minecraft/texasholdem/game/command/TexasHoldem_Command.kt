@@ -1,6 +1,9 @@
 package ltotj.minecraft.texasholdem_kotlin.game.command
 
 import ltotj.minecraft.texasholdem_kotlin.Main
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.playable
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.plugin
+import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
 import ltotj.minecraft.texasholdem_kotlin.game.TexasHoldem
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
@@ -15,15 +18,21 @@ object TexasHoldem_Command: CommandExecutor {
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean{
         if (args.isEmpty())return false
-        if(sender.hasPermission("poker.switch")&& args[0] == "switch"){
-            Main.playable.set(!Main.playable.get())
-            if(Main.playable.get()){
-                sender.sendMessage("新規ゲームを開催可能にしました")
+        if(sender.hasPermission("poker.admin")){
+            when(args[0]){
+                "on"->{
+                    playable.set(true)
+                    plugin.config.set("canPlay",true)
+                    plugin.saveConfig()
+                    sender.sendMessage("[TexasHoldem]をオンにしました")
+                }
+                "off"->{
+                    playable.set(false)
+                    plugin.config.set("canPlay",false)
+                    plugin.saveConfig()
+                    sender.sendMessage("[TexasHoldem]をオフにしました")
+                }
             }
-            else{
-                sender.sendMessage("新規ゲームを開催不可能にしました")
-            }
-            return true
         }
         if(sender !is Player){
             sender.sendMessage("プレイヤー以外は実行できません")
@@ -32,10 +41,10 @@ object TexasHoldem_Command: CommandExecutor {
         val uuid=sender.uniqueId
         when(args[0]){
             "start"->{
-                if(!Main.playable.get())sender.sendMessage("[TexasHoldem]はただいま停止中です")
+                if(!playable.get())sender.sendMessage("[TexasHoldem]はただいま停止中です")
                 else if(Main.currentPlayers.containsKey(uuid))sender.sendMessage("あなたは既にゲームに参加しています！/poker open でゲーム画面を開きましょう！")
                 else if(args.size<3||args[1].toIntOrNull()==null||args[2].toIntOrNull()==null||args[1].toInt()< Main.con.getInt("minChipRate")||
-                        args[1].toInt()> Main.con.getInt("maxChipRate")|| abs(args[2].toInt() - 3) >1)sender.sendMessage("/poker start <チップ一枚あたりの金額:"+ Main.con.getDouble("minChipRate")+"以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人)")
+                        args[1].toInt()> Main.con.getInt("maxChipRate")|| abs(args[2].toInt() - 3) >1)sender.sendMessage("/poker start <チップ一枚あたりの金額:${getYenString(Main.con.getDouble("minChipRate"))}以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人)")
                 else if(Main.vault.getBalance(uuid)<args[1].toInt()* Main.con.getDouble("firstNumberOfChips"))sender.sendMessage("所持金が足りません")
                 else{
                     if(args.size>3&&args[3].toIntOrNull()!=null&&args[2].toInt()<=args[3].toInt()&&args[3].toInt()<=4){
@@ -46,12 +55,12 @@ object TexasHoldem_Command: CommandExecutor {
                     }
                     if(args.size>4&&args[4].toIntOrNull()!=null&& abs(args[4].toInt()-2) >1) Main.texasHoldemTables[uuid]!!.roundTimes=args[4].toInt()
                     Main.texasHoldemTables[uuid]?.addPlayer(sender)
-                    Bukkit.broadcast(Component.text("§l"+sender.name+"§aが§cチップ一枚"+args[1]+"円§r、§l§e募集人数"+args[2]+"〜"+ Main.texasHoldemTables[uuid]!!.maxSeat+"人、§c周回数"+ Main.texasHoldemTables[uuid]!!.roundTimes+"回§aで§7§lテキサスホールデム§aを募集中！§r/poker join "+sender.name+" §l§aで参加しましょう！ §4注意 参加必要金額"+(args[1].toDouble()* Main.con.getDouble("firstNumberOfChips"))), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(Component.text("§l"+sender.name+"§aが§cチップ一枚"+getYenString(args[1].toDouble())+"§r、§l§e募集人数"+args[2]+"〜"+ Main.texasHoldemTables[uuid]!!.maxSeat+"人、§c周回数"+ Main.texasHoldemTables[uuid]!!.roundTimes+"回§aで§7§lテキサスホールデム§aを募集中！§r/poker join "+sender.name+" §l§aで参加しましょう！ §4注意 参加必要金額"+getYenString((args[1].toDouble()* Main.con.getDouble("firstNumberOfChips")))), Server.BROADCAST_CHANNEL_USERS)
                     Main.texasHoldemTables[uuid]?.start()
                 }
             }
             "join"->{
-                if(!Main.playable.get())sender.sendMessage("[TexasHoldem]はただいま停止中です")
+                if(!playable.get())sender.sendMessage("[TexasHoldem]はただいま停止中です")
                 else if(Main.currentPlayers.containsKey(uuid))sender.sendMessage("あなたは既にゲームに参加しています！/poker open でゲーム画面を開きましょう！")
                 else if(args.size<2)sender.sendMessage("/poker join <募集している人のID>")
                 else if(Bukkit.getPlayer(args[1]) ==null|| !Main.texasHoldemTables.containsKey(Bukkit.getPlayerUniqueId(args[1])))sender.sendMessage(args[1]+"さんはゲームを開催していません")
@@ -71,7 +80,7 @@ object TexasHoldem_Command: CommandExecutor {
             "list"->{
                 sender.sendMessage("参加者募集中の部屋は以下の通りです")
                 for(texasholdem in Main.texasHoldemTables.values){
-                    if(!texasholdem.isRunning)sender.sendMessage("主催者："+texasholdem.masterPlayer.name+" 必要金額§4"+texasholdem.rate*texasholdem.firstChips+" §r募集人数："+texasholdem.minSeat+"〜"+texasholdem.maxSeat+"人")
+                    if(!texasholdem.isRunning)sender.sendMessage("主催者："+texasholdem.masterPlayer.name+" 必要金額§4${getYenString(texasholdem.rate*texasholdem.firstChips)} §r募集人数："+texasholdem.minSeat+"〜"+texasholdem.maxSeat+"人")
                 }
             }
         }

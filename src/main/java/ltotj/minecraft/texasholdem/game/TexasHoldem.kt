@@ -7,6 +7,7 @@ import ltotj.minecraft.texasholdem_kotlin.Main.Companion.playable
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.plugin
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.texasHoldemTables
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.vault
+import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
 import ltotj.minecraft.texasholdem_kotlin.game.utility.Card
 import ltotj.minecraft.texasholdem_kotlin.game.utility.Deck
 import ltotj.minecraft.texasholdem_kotlin.game.utility.PlayerCards
@@ -84,8 +85,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
 
         fun raiseBet(){
-            if(addedChips==10)player.sendMessage("一度に上乗せできる枚数は十枚までです")
-            else if(bet+addedChips-instBet<playerChips&&addedChips<10) {
+            if(bet+addedChips-instBet<playerChips&&addedChips<10) {
                 addedChips++
                 playerGUI.reloadRaiseButton(addedChips)
             }
@@ -104,7 +104,6 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
 
         open fun allIn():Boolean{
-            if(bet<playerChips)return false
             instBet+=playerChips
             playerChips=0
             allInList.add(seat)
@@ -345,16 +344,17 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         for (i in 0 until playerList.size) {
             query.append(",'" + playerList[i].player.name + "'")
             vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips)
+            currentPlayers.remove(playerList[i].player.uniqueId)
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 playerList[i].player.closeInventory()
             })
         }
-        if (playerList.size != 4) for (i in playerList.size..4) query.append(",null")
+        if (playerList.size != 4) for (i in playerList.size until 4) query.append(",null")
         query.append(",'$rate','$firstChips'")
         for (i in 0 until playerList.size) query.append(",'" + playerList[i].playerChips + "'")
-        if (playerList.size != 4) for (i in playerList.size..4) query.append(",0")
+        if (playerList.size != 4) for (i in playerList.size until 4) query.append(",0")
         query.append(");")
-        if (mySQL.execute(query.toString())) {
+        if (!mySQL.execute(query.toString())) {
             playable.set(false)
             println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
         }
@@ -413,14 +413,14 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     override fun run() {
         for (i in 0..59) {
-            if (i % 10 == 0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + firstChips * rate),Server.BROADCAST_CHANNEL_USERS)
+            if (i % 20 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)),Server.BROADCAST_CHANNEL_USERS)
             if (playerList.size == maxSeat) break
             sleep(1000)
         }
         isRunning = true
         val seatSize = playerList.size
         if (seatSize < minSeat) {
-            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人が集まらなかったので中止しました"), Server.BROADCAST_CHANNEL_USERS)
+            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人数不足により解散しました"), Server.BROADCAST_CHANNEL_USERS)
             endGame()
             return
         }

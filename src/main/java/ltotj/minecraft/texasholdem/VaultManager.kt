@@ -1,5 +1,6 @@
 package ltotj.minecraft.texasholdem_kotlin
 
+import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
 import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
@@ -52,7 +53,7 @@ class VaultManager(private val plugin: JavaPlugin) {
         val resp = economy!!.withdrawPlayer(p, money)
         if (resp.transactionSuccess()) {
             if (p.isOnline) {
-                p.player!!.sendMessage(ChatColor.YELLOW.toString() + "$" + money + "支払いました")
+                p.player!!.sendMessage(ChatColor.YELLOW.toString() + getYenString(money) + "支払いました")
             }
             return true
         }
@@ -67,7 +68,7 @@ class VaultManager(private val plugin: JavaPlugin) {
         val resp = economy!!.depositPlayer(p, money)
         if (resp.transactionSuccess()) {
             if (p.isOnline) {
-                p.player!!.sendMessage(ChatColor.YELLOW.toString() + "$" + money + "受取りました")
+                p.player!!.sendMessage(ChatColor.YELLOW.toString() + getYenString(money) + "受取りました")
             }
             return true
         }

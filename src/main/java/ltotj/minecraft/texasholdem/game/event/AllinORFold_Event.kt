@@ -18,13 +18,13 @@ object AllinORFold_Event:Listener {
 
     @EventHandler
     fun InvClickEve(e: InventoryClickEvent){
-        if(e.view != Component.text("AllinORFold"))return
+        if(e.view.title()!= Component.text("AllinORFold"))return
         e.isCancelled=true
         val player=e.whoClicked as Player
         val item=e.currentItem
         if(item!=null&&item.type!= Material.AIR&&item.type!= Material.WHITE_STAINED_GLASS_PANE) {
-            clickSound(player)
             if (!Main.getPlData(player)?.action!!) {
+                clickSound(player)
                 when (item.displayName()) {
                     Component.text("§w§lフォールド") -> Main.getPlData(player)?.fold()
                     Component.text("§w§lオールイン") -> (Main.getPlData(player) as AllinORFold.PlayerData).allIn()

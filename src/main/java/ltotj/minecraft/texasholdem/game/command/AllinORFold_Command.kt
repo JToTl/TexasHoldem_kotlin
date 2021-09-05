@@ -1,6 +1,8 @@
 package ltotj.minecraft.texasholdem_kotlin.game.command
 
 import ltotj.minecraft.texasholdem_kotlin.Main
+import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
+import ltotj.minecraft.texasholdem_kotlin.game.AllinORFold
 import ltotj.minecraft.texasholdem_kotlin.game.TexasHoldem
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
@@ -25,18 +27,18 @@ object AllinORFold_Command:CommandExecutor{
                 if(!Main.playable.get())sender.sendMessage("[AllinORFold]はただいま停止中です")
                 else if(Main.currentPlayers.containsKey(uuid))sender.sendMessage("あなたは既にゲームに参加しています！/poker open でゲーム画面を開きましょう！")
                 else if(args.size<3||args[1].toIntOrNull()==null||args[2].toIntOrNull()==null||args[1].toInt()< Main.con.getInt("minChipRate")||
-                        args[1].toInt()> Main.con.getInt("maxChipRate")|| abs(args[2].toInt() - 3) >1)sender.sendMessage("/poker start <チップ一枚あたりの金額:"+ Main.con.getDouble("minChipRate")+"以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人)")
+                        args[1].toInt()> Main.con.getInt("maxChipRate")|| abs(args[2].toInt() - 3) >1)sender.sendMessage("/poker start <チップ一枚あたりの金額:${getYenString(Main.con.getDouble("minChipRate"))}以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人)")
                 else if(Main.vault.getBalance(uuid)<args[1].toInt()* Main.con.getDouble("firstNumberOfChips"))sender.sendMessage("所持金が足りません")
                 else{
                     if(args.size>3&&args[3].toIntOrNull()!=null&&args[2].toInt()<=args[3].toInt()&&args[3].toInt()<=4){
-                        Main.texasHoldemTables[uuid] = TexasHoldem(sender, args[3].toInt(), args[2].toInt(), args[1].toDouble())
+                        Main.texasHoldemTables[uuid] = AllinORFold(sender, args[3].toInt(), args[2].toInt(), args[1].toDouble())
                     }
                     else{
-                        Main.texasHoldemTables[uuid] = TexasHoldem(sender, 4, args[2].toInt(), args[1].toDouble())
+                        Main.texasHoldemTables[uuid] = AllinORFold(sender, 4, args[2].toInt(), args[1].toDouble())
                     }
                     if(args.size>4&&args[4].toIntOrNull()!=null&& abs(args[4].toInt()-2) >1) Main.texasHoldemTables[uuid]!!.roundTimes=args[4].toInt()
                     Main.texasHoldemTables[uuid]?.addPlayer(sender)
-                    Bukkit.broadcast(Component.text("§l"+sender.name+"§aが§cチップ一枚"+args[1]+"円§r、§l§e募集人数"+args[2]+"〜"+ Main.texasHoldemTables[uuid]!!.maxSeat+"人、§c周回数"+ Main.texasHoldemTables[uuid]!!.roundTimes+"回§aで§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aを募集中！§r/poker join "+sender.name+" §l§aで参加しましょう！ §4注意 参加必要金額"+(args[1].toDouble()* Main.con.getDouble("firstNumberOfChips"))), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(Component.text("§l"+sender.name+"§aが§cチップ一枚"+getYenString(args[1].toDouble())+"§r、§l§e募集人数"+args[2]+"〜"+ Main.texasHoldemTables[uuid]!!.maxSeat+"人、§c周回数"+ Main.texasHoldemTables[uuid]!!.roundTimes+"回§aで§8§lオールイン§f§l・§f§lオア§f§l・§7§lフォールド§aを募集中！§r/aof join "+sender.name+" §l§aで参加しましょう！ §4注意 参加必要金額"+getYenString((args[1].toDouble()* Main.con.getDouble("firstNumberOfChips")))), Server.BROADCAST_CHANNEL_USERS)
                     Main.texasHoldemTables[uuid]?.start()
                 }
             }
@@ -61,7 +63,7 @@ object AllinORFold_Command:CommandExecutor{
             "list"->{
                 sender.sendMessage("参加者募集中の部屋は以下の通りです")
                 for(texasholdem in Main.texasHoldemTables.values){
-                    if(!texasholdem.isRunning)sender.sendMessage("主催者："+texasholdem.masterPlayer.name+" 必要金額§4"+texasholdem.rate*texasholdem.firstChips+" §r募集人数："+texasholdem.minSeat+"〜"+texasholdem.maxSeat+"人")
+                    if(!texasholdem.isRunning)sender.sendMessage("主催者："+texasholdem.masterPlayer.name+" 必要金額§4${getYenString(texasholdem.rate*texasholdem.firstChips)} §r募集人数："+texasholdem.minSeat+"〜"+texasholdem.maxSeat+"人")
                 }
             }
         }

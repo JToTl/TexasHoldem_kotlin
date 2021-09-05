@@ -3,6 +3,7 @@ package ltotj.minecraft.texasholdem_kotlin
 import ltotj.minecraft.texasholdem_kotlin.game.TexasHoldem
 import ltotj.minecraft.texasholdem_kotlin.game.command.AllinORFold_Command
 import ltotj.minecraft.texasholdem_kotlin.game.command.TexasHoldem_Command
+import ltotj.minecraft.texasholdem_kotlin.game.event.AllinORFold_Event
 import ltotj.minecraft.texasholdem_kotlin.game.event.TexasHoldem_Event
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
@@ -48,6 +49,7 @@ class Main : JavaPlugin() {
         vault = VaultManager(this)
         mySQL = MySQLManager(this, "TexasHoldem")
         server.pluginManager.registerEvents(TexasHoldem_Event,this)
+        server.pluginManager.registerEvents(AllinORFold_Event,this)
         getCommand("poker")!!.setExecutor(TexasHoldem_Command)
         getCommand("aof")!!.setExecutor(AllinORFold_Command)
     }
