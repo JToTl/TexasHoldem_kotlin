@@ -140,9 +140,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 }
                 if (i == 0) {
                     playerList[turnSeat()].addedChips = 0
-                    if (playerList[turnSeat()].call()) {
-                        playerList[turnSeat()].fold()
-                    }
+                    playerList[turnSeat()].fold()
                     break
                 }
                 if(playerList[turnSeat()].action){
