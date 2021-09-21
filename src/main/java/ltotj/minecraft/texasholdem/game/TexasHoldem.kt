@@ -1,12 +1,14 @@
 package ltotj.minecraft.texasholdem_kotlin.game
 
+import ltotj.minecraft.texasholdem_kotlin.Main
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.con
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.currentPlayers
-import ltotj.minecraft.texasholdem_kotlin.Main.Companion.mySQL
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.playable
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.plugin
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.texasHoldemTables
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.vault
+import ltotj.minecraft.texasholdem_kotlin.MySQLManager
+import ltotj.minecraft.texasholdem_kotlin.Utility.createGUIItem
 import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
 import ltotj.minecraft.texasholdem_kotlin.game.utility.Card
 import ltotj.minecraft.texasholdem_kotlin.game.utility.Deck
@@ -25,9 +27,13 @@ import java.lang.Double.max
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.math.floor
+import kotlin.math.pow
 import kotlin.math.round
+import kotlin.math.roundToInt
 
 
 open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, val rate: Double):Thread(){
@@ -44,11 +50,11 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
     var roundTimes=1
     var foldedList=ArrayList<Int>()
     var allInList=ArrayList<Int>()
-    var winners=ArrayList<Int>()
     var isRunning=false
+    private val mySQL = MySQLManager(Main.plugin, "TexasHoldem")
     private val startTime=Date()
 
-    open inner class PlayerData(val player: Player, protected val seat: Int) {
+    open inner class PlayerData(val player: Player, val seat: Int) {
         open val playerGUI = PlayerGUI(seat,"TexasHoldem")
         val playerCards = PlayerCards()
         var addedChips = 0
@@ -56,6 +62,8 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         var instBet = 0
         var playerChips=firstChips
         var action=false
+        var preCall= AtomicBoolean()
+        var totalBetAmount=0 //allIn時の配分計算用
 
         fun getHead():ItemStack{
             val item = ItemStack(Material.PLAYER_HEAD)
@@ -70,9 +78,15 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 addedChips=0
                 return false
             }
+            if(playerChips==bet+addedChips-instBet){
+                allIn()
+                return true
+            }
+            playerGUI.removeButton()
             bet+=addedChips
             playerChips+=instBet-bet
-            setChips(seat, instBet, bet)
+            totalBetAmount+=bet-instBet
+            setChips(seat,instBet,bet)
             instBet=bet
             addedChips=0
             action=true
@@ -85,7 +99,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
 
         fun raiseBet(){
-            if(bet+addedChips-instBet<playerChips&&addedChips<10) {
+            if(bet+addedChips-instBet<playerChips) {
                 addedChips++
                 playerGUI.reloadRaiseButton(addedChips)
             }
@@ -100,11 +114,16 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
         fun fold() {
             foldedList.add(seat)
+            setItemAlPl(chipPosition(seat),createGUIItem(Material.BARRIER,1,"§f§lフォールド"))
             action=true
         }
 
         open fun allIn():Boolean{
             instBet+=playerChips
+            bet= kotlin.math.max(instBet,playerChips)
+            totalBetAmount+=playerChips
+            setItemAlPl(chipPosition(seat),createGUIItem(Material.NETHER_STAR,1,"§e§lオールイン:${instBet}枚"))
+            playSoundAlPl(Sound.BLOCK_ENCHANTMENT_TABLE_USE,2F)
             playerChips=0
             allInList.add(seat)
             action=true
@@ -115,9 +134,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             hand=0.0
             addedChips=0
             instBet=0
+            totalBetAmount=0
             playerCards.reset()
-
-            for(playerData in playerList)playerGUI.setCoin(playerData.seat,playerData.player.name,playerData.playerChips)
+            preCall.set(false)
+            for(playerData in playerList)playerGUI.setCoin(playerData.seat, playerData.player.name, playerData.playerChips)
         }
 
         fun setUpCard(setSeat: Int, dif: Int){
@@ -129,8 +149,9 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     protected open fun actionTime(dif: Int) {
         turnCount += dif
-        while ((foldedList.size < playerList.size && playerList[turnSeat()].instBet != bet) || turnCount < playerList.size + dif) {
+        while (allInList.size<(playerList.size-foldedList.size)&&foldedList.size < playerList.size-1 && ((playerList[turnSeat()].instBet != bet) || turnCount < playerList.size + dif)) {
             setGUI(turnSeat())
+            playerList[turnSeat()].preCall.set(false)
             for (i in 600 downTo 0) {
                 if (foldedList.contains(turnSeat())||allInList.contains(turnSeat())) break
                 sleep(50)
@@ -140,8 +161,14 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 }
                 if (i == 0) {
                     playerList[turnSeat()].addedChips = 0
-                    playerList[turnSeat()].fold()
+                    if (!playerList[turnSeat()].call()) {
+                        playerList[turnSeat()].fold()
+                    }
                     break
+                }
+                if(!playerList[turnSeat()].action&&playerList[turnSeat()].preCall.get()){
+                    playerList[turnSeat()].preCall.set(false)
+                    playerList[turnSeat()].call()
                 }
                 if(playerList[turnSeat()].action){
                     playerList[turnSeat()].action=false
@@ -149,17 +176,24 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 }
             }
             playerList[turnSeat()].playerGUI.removeButton()
-            removeItem(chipPosition(turnSeat()))
-            removeItem(26)
+            removeItem(chipPosition(turnSeat()) - 3)
+            removeItem(19)
             setCoin(turnSeat())
+            turnCount+=1
         }
-        for(i in 0..playerList.size){
-            if(!foldedList.contains(i)&&!allInList.contains(i)){
-                removeItem(chipPosition(i))
-                playSoundAlPl(Sound.BLOCK_GRAVEL_STEP, 2F)
-                sleep(500);
+        for(i in 0 until playerList.size){
+            if(!foldedList.contains(i)) {
+                if (allInList.contains(i)) {
+                    setItemAlPl(chipPosition(i), createGUIItem(Material.NETHER_STAR,1,"§e§lオールイン済み${playerList[i].totalBetAmount}枚"))
+                    sleep(500)
+                } else {
+                    removeItem(chipPosition(i))
+                    playSoundAlPl(Sound.BLOCK_GRAVEL_STEP, 2F)
+                    sleep(500);
+                }
             }
         }
+        turnCount=0
         setPot()
         resetBet()
     }
@@ -179,7 +213,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         else{
             for(i in 0..playerList.size-2){
                 playerList[i].playerGUI.setCoin(0,playerList[i].player.name,firstChips)
-                playerList[i].playerGUI.inv.setItem(cardPosition(i)-1,playerList[i].getHead())
+                playerList[i].playerGUI.inv.setItem(cardPosition(playerList.size-1)-1,playerList[playerList.size-1].getHead())
             }
             playerList[seatMap[player.uniqueId]!!].playerGUI.inv.contents = playerList[0].playerGUI.inv.contents
         }
@@ -192,15 +226,18 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     protected open fun reset(){
         deck.reset()
+        community.clear()
+        foldedList.clear()
+        allInList.clear()
+        turnCount=0
+        pot=0
         for(playerData in playerList){
+            playerData.hand=0.0
             playerData.reset()
             playerData.drawCard()
             playerData.drawCard()
+            removeItem(chipPosition(playerData.seat))
         }
-        community.clear()
-        foldedList.clear()
-        turnCount=0
-        pot=0
         setPot()
         for(i in 20..24)removeItem(i)
     }
@@ -223,7 +260,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
     protected fun setCommunityCard(){
         for(i in 0..4){
             val card=deck.draw()
-            community[i]=card
+            community.add(card)
             playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
             for(playerData in playerList)playerData.playerGUI.setFaceDownCard(20 + i)
             sleep(350)
@@ -265,7 +302,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         val openCom = ArrayList<Int>()
         val openPlC = ArrayList<Int>()
         val ins = getDigit(playerList[seat].hand, 0, 2)
-        val insSuit = getDigit(playerList[seat].hand, 13, 14)
+        val insSuit = getDigit(playerList[seat].hand, 12, 13)
         var flag = false
         for (i in 0..4) {
             for (j in 0..4) {
@@ -282,10 +319,14 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             if (!openPlC.contains(0)&&((ins!=18&&ins!=15)||playerList[seat].playerCards.cards[0].suit == insSuit)&&playerList[seat].playerCards.cards[0].num== getDigit(playerList[seat].hand, 2 * i + 2, 2 * i + 4)) openPlC.add(0)
             else openPlC.add(1)
         }
+        playSoundAlPl(Sound.BLOCK_BEACON_ACTIVATE,2F)
         for(i in 0..4){
-            if(openPlC.contains(i))for(playerData in playerList)playerData.playerGUI.enchantItem(cardPosition(seat) + i)
             if(openCom.contains(i))for(playerData in playerList)playerData.playerGUI.enchantItem(20 + i)
             else removeItem(20 + i)
+        }
+        for(i in 0..1){
+            if(openPlC.contains(i))for(playerData in playerList)playerData.playerGUI.enchantItem(cardPosition(seat) + i)
+            else removeItem(cardPosition(seat) + i)
         }
     }
 
@@ -298,9 +339,8 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
     }
 
     private fun getDigit(f: Double, start: Int, end: Int):Int{
-        val num=f.toString()
-        if(num.length<end)return 0
-        return num.substring(start, end).toInt()
+        val l = floor(f / 10.0.pow(13 - end))
+        return (l - 10.0.pow(end-start) * floor(l / (10.0.pow(end-start)))).roundToInt()
     }
 
     fun getPlData(uuid: UUID): PlayerData? {
@@ -347,22 +387,24 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 playerList[i].player.closeInventory()
             })
         }
-        if (playerList.size != 4) for (i in playerList.size until 4) query.append(",null")
-        query.append(",'$rate','$firstChips'")
-        for (i in 0 until playerList.size) query.append(",'" + playerList[i].playerChips + "'")
-        if (playerList.size != 4) for (i in playerList.size until 4) query.append(",0")
+        for (i in playerList.size until 4) query.append(",null")
+        query.append(",$rate,$firstChips")
+        for (i in 0 until playerList.size) query.append("," + playerList[i].playerChips + "")
+        for (i in playerList.size until 4) query.append(",0")
         query.append(");")
-        if (!mySQL.execute(query.toString())) {
-            playable.set(false)
-            println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
-        }
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (!mySQL.execute(query.toString())) {
+                playable.set(false)
+                println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
+            }
+        })
     }
 
     protected fun sendResult(){
         val message=ArrayList<String>()
-        message.add("§4§l====================§a結果§4§l====================")
-        for(playerData in playerList)message.add("§e"+playerData.player.name+"：§d"+playerData.playerChips+"枚")
-        message.add("§4§l==========================================")
+        message.add("§4§l=============§aTexasHoldem.§dResult§4§l==============")
+        for(playerData in playerList)message.add("§e" + playerData.player.name + "：§d" + playerData.playerChips + "枚")
+        message.add("§4§l=========================================")
         for(playerData in playerList)for(str in message)playerData.player.sendMessage(str)
     }
 
@@ -373,7 +415,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     protected fun openPlCard(seat: Int){
         playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
-        for(i in 0..playerList.size){
+        for(i in 0 until playerList.size){
             playerList[i].playerGUI.setCard(cardPosition(seat), playerList[seat].playerCards.cards[0])
             playerList[i].playerGUI.setCard(cardPosition(seat) + 1, playerList[seat].playerCards.cards[1])
         }
@@ -384,16 +426,17 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
     }
 
     protected fun openCommunityCard(num: Int){
+        playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
         for(playerData in playerList)playerData.playerGUI.setCard(20 + num, community[num])
         sleep(1000)
     }
 
     protected fun setClock(time: Int){
-        setItemAlPl(26, ItemStack(Material.CLOCK, time))
+        setItemAlPl(19, ItemStack(Material.CLOCK, time))
     }
 
     protected open fun setGUI(turnS: Int){
-        for(i in 0..playerList.size){
+        for(i in 0 until playerList.size){
             if(i==turnS)playerList[i].playerGUI.setActionButtons()
             playerList[i].playerGUI.setTurnPBlo(turnS)
         }
@@ -409,22 +452,154 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
     }
 
+    protected fun sendRewardGUI(seat:Int,rank:Int){//rankは0から
+        val item=if(rank==0) ItemStack(Material.GOLD_INGOT) else ItemStack(Material.GOLD_NUGGET)
+        val direction=if(seat<2) 1 else -1
+        if(seat%3==0) {
+            sleep(400)
+            setItemAlPl(24, item)
+            sleep(400)
+            removeItem(24)
+            setItemAlPl(24+9*direction, item)
+            sleep(400)
+            removeItem(24+9*direction)
+            setItemAlPl(25 + 9*direction,item)
+            sleep(400)
+            removeItem(25 + 9*direction)
+            setItemAlPl(26 + 9*direction,item)
+            sleep(400)
+            removeItem(26 + 9*direction)
+            playSoundAlPl(Sound.BLOCK_ANVIL_LAND, 2F)
+        }
+        else{
+            sleep(400)
+            setItemAlPl(24,item)
+            sleep(400)
+            removeItem(24)
+            setItemAlPl(23,item)
+            sleep(400)
+            removeItem(23)
+            setItemAlPl(22,item)
+            sleep(400)
+            removeItem(22)
+            setItemAlPl(21,item)
+            sleep(400)
+            removeItem(21)
+            setItemAlPl(21+9*direction,item)
+            sleep(400)
+            removeItem(21+9*direction)
+            playSoundAlPl(Sound.ENTITY_PLAYER_LEVELUP, 2F)
+        }
+    }
+
+    protected fun showAndPayReward(){
+        val handsList=ArrayList<ArrayList<Int>>()
+        for (i in 0 until playerList.size) {
+            if (!foldedList.contains(i)) {//displayHand実行によりhandが保存される
+                displayHand(i)
+                var k=0
+                for(j in 0 until handsList.size+1){
+                    if(j==handsList.size){//降順になるようにソート
+                        var listA=arrayListOf(i) //新規に入れる手
+                        var listB:ArrayList<Int>? = null //移す手
+                        for(r in k until handsList.size){
+                            listB=handsList[r]
+                            handsList[r]=listA
+                            listA=listB
+                        }
+                        handsList.add(listB?:listA)
+                        break
+                    }
+                    if(round(playerList[handsList[j][0]].hand/10)==round(playerList[i].hand/10)){
+                        handsList[j].add(j)
+                        break
+                    }
+                    k=if(j==k&&round(playerList[handsList[j][0]].hand/10)>round(playerList[i].hand/10)) j+1 else k
+                }
+                sleep(5000)
+                reloadGUI(i)
+            }
+        }
+        //表示
+        if (handsList[0].size==1) {
+            for (i in 0..7) {
+                setWinnerHead(i % 2 == 0, playerList[handsList[0][0]].getHead())
+                playSoundAlPl(Sound.ENTITY_FIREWORK_ROCKET_TWINKLE_FAR,1F)
+                sleep(500)
+            }
+        }
+        else {
+            setDrawItem()
+        }
+        for(i in 0..4)removeItem(20 + i)
+
+        for(i in 0 until playerList.size){
+            if(!foldedList.contains(i))removeItem(chipPosition(i))
+        }
+
+        //pot分配
+        var toBB=0
+        var loop=0
+        while(pot!=0&&loop<20){
+            var instancePot=0
+            var minBet=pot //最大値として値を一旦代入
+
+            if(loop!=0){
+                for(list in handsList){
+                    for(i in (list.clone() as ArrayList<*>)){
+                        if(playerList[i as Int].totalBetAmount==0){
+                            list.remove(i)
+                        }
+                    }
+                }
+                while (handsList[0].size==0){
+                    handsList.removeAt(0)
+                    if(handsList.size==0)break;
+                }
+            }
+
+            for(i in handsList[0]){
+                minBet= minBet.coerceAtMost(playerList[i].totalBetAmount)
+            }
+            for(playerData in playerList){
+                val move=minBet.coerceAtMost(playerData.totalBetAmount)
+                println("totalBetAmountは${playerData.totalBetAmount}")
+                instancePot+=move
+                pot-=move
+                playerData.totalBetAmount-=move
+                println("potは$pot")
+            }
+            toBB+=instancePot%handsList[0].size
+            instancePot/=handsList[0].size
+            for(i in handsList[0]){
+                playerList[i].playerChips+=instancePot
+                sendRewardGUI(i,loop)
+            }
+            loop++
+        }
+        if(toBB!=0){
+            sleep(1000)
+            playerList[firstSeat%playerList.size].playerChips+=toBB
+            sendRewardGUI(firstSeat%playerList.size,2)
+        }
+    }
+
     override fun run() {
         for (i in 0..59) {
-            if (i % 20 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)),Server.BROADCAST_CHANNEL_USERS)
+            if (i % 10 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + firstChips * rate), Server.BROADCAST_CHANNEL_USERS)
             if (playerList.size == maxSeat) break
             sleep(1000)
         }
         isRunning = true
         val seatSize = playerList.size
         if (seatSize < minSeat) {
-            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人数不足により解散しました"), Server.BROADCAST_CHANNEL_USERS)
+            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人が集まらなかったので中止になりました"), Server.BROADCAST_CHANNEL_USERS)
             endGame()
             return
         }
-        for (times in 0..seatSize * roundTimes) {
+        for (times in 0 until seatSize * roundTimes) {
             reset()
-            for (i in 0..seatSize) {
+            for (i in 0 until seatSize) {
                 playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
                 setPlayerCard(i, 0)
                 sleep(500)
@@ -435,9 +610,14 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             setCommunityCard()
             //SBとBBの強制ベット
             for (i in 0..1) {
+                turnCount+=i
                 playerList[turnSeat()].addedChips = 1
-                if (playerList[turnSeat()].call()) setCoin(turnSeat())
+                if (playerList[turnSeat()].call()) {
+                    setCoin(turnSeat())
+                    playerList[turnSeat()].action=false
+                }
             }
+            turnCount=0
             //プリフロップ
             actionTime(2)
             openCommunityCard(0)
@@ -452,34 +632,16 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             //リバー
             actionTime(0)
             playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
-            for (i in 0..seatSize) if (!foldedList.contains(i)) openPlCard(i)
+            for (i in 0 until seatSize) if (!foldedList.contains(i)) openPlCard(i)
             sleep(2000)
-            var winHand = 0.0
-            for (i in 0..seatSize) {
-                if (!foldedList.contains(i)) {//displayHand実行によりhandが保存される
-                    winHand = max(winHand, round((playerList[i].hand / 10)))
-                    displayHand(i)
-                    sleep(5000)
-                    reloadGUI(i)
-                }
-            }
-            for (i in 0..seatSize) if (!foldedList.contains(i) && round((playerList[i].hand / 10)) == winHand) winners.add(i)
-            //pot分配
-            for (i in winners) playerList[i].playerChips += pot / winners.size
-            if (winners.size == 1) for (i in 0..7) {
-                setWinnerHead(i % 2 == 0, playerList[winners[0]].getHead())
-                sleep(500)
-            }
-            else {
-                setDrawItem()
-                sleep(4000)
-            }
-            firstSeat+=1
-            for(i in 0..seatSize){
+
+            showAndPayReward()
+
+            sleep(4000)
+            for(i in 0 until seatSize){
                 removeItem(cardPosition(i))
                 removeItem(cardPosition(i) + 1)
             }
-            for(i in 0..4)removeItem(20 + i)
             firstSeat+=1
         }
         endGame()

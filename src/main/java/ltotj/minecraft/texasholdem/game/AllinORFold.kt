@@ -39,8 +39,8 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
         }
         else{
             for(i in 0..playerList.size-2){
-                playerList[i].playerGUI.setCoin(0,playerList[i].player.name,firstChips)
-                playerList[i].playerGUI.inv.setItem(cardPosition(i)-1,playerList[i].getHead())
+                playerList[i].playerGUI.setCoin(playerList.size-1,playerList[playerList.size-1].player.name,firstChips)
+                playerList[i].playerGUI.inv.setItem(cardPosition(playerList.size-1)-1,playerList[playerList.size-1].getHead())
             }
             playerList[seatMap[player.uniqueId]!!].playerGUI.inv.contents = playerList[0].playerGUI.inv.contents
         }
@@ -124,7 +124,7 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
         for (times in 0..seatSize * roundTimes) {
             reset()//ここで所持金0のプレイヤーをカウント
             if(noMoneyCount==playerList.size-1)break
-            for (i in 0..seatSize) {
+            for (i in 0 until seatSize) {
                 playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
                 setPlayerCard(i, 0)
                 sleep(500)
@@ -151,26 +151,26 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
             playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
             for (i in 0..seatSize) if (!foldedList.contains(i)) openPlCard(i)
             sleep(2000)
-            var winHand = 0.0
-            for (i in 0..seatSize) {
-                if (!foldedList.contains(i)) {//displayHand実行によりhandが保存される
-                    winHand = max(winHand, round((playerList[i].hand / 10)))
-                    displayHand(i)
-                    sleep(5000)
-                    reloadGUI(i)
-                }
-            }
-            for (i in 0..seatSize) if (!foldedList.contains(i) && round((playerList[i].hand / 10)) == winHand) winners.add(i)
-            //pot分配
-            for (i in winners) playerList[i].playerChips += pot / winners.size
-            if (winners.size == 1) for (i in 0..7) {
-                setWinnerHead(i % 2 == 0, playerList[winners[0]].getHead())
-                sleep(500)
-            }
-            else {
-                setDrawItem()
-                sleep(4000)
-            }
+//            var winHand = 0.0
+//            for (i in 0..seatSize) {
+//                if (!foldedList.contains(i)) {//displayHand実行によりhandが保存される
+//                    winHand = max(winHand, round((playerList[i].hand / 10)))
+//                    displayHand(i)
+//                    sleep(5000)
+//                    reloadGUI(i)
+//                }
+//            }
+//            for (i in 0..seatSize) if (!foldedList.contains(i) && round((playerList[i].hand / 10)) == winHand) winners.add(i)
+//            //pot分配
+//            for (i in winners) playerList[i].playerChips += pot / winners.size
+//            if (winners.size == 1) for (i in 0..7) {
+//                setWinnerHead(i % 2 == 0, playerList[winners[0]].getHead())
+//                sleep(500)
+//            }
+//            else {
+//                setDrawItem()
+//                sleep(4000)
+//            }
             firstSeat+=1
             for(i in 0..seatSize){
                 removeItem(cardPosition(i))

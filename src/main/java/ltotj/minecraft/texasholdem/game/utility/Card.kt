@@ -15,17 +15,17 @@ class Card (val suit:Int,val num:Int){
         val item=ItemStack(material,1)
         val meta=item.itemMeta
         meta.setCustomModelData(con.getInt("$suit.$num.customModelData"))
-        meta.displayName(Component.text("§c"+getSuit(suit) + "の" + ((num-1)%13+1)))
-        item.setItemMeta(meta)
+        meta.displayName(Component.text("${getSuit(suit)}§fの${((num-1)%13+1)}"))
+        item.itemMeta = meta
         return item
     }
 
     fun getSuit(i:Int):String{
         when(i){
-            0->return "スペード"
-            1->return "ダイヤ"
-            2->return "ハート"
-            3->return "クローバー"
+            0->return "§8§lスペード"
+            1->return "§c§lダイヤ"
+            2->return "§c§lハート"
+            3->return "§8§lクローバー"
         }
         return ""
     }

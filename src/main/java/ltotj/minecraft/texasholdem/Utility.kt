@@ -1,5 +1,8 @@
 package ltotj.minecraft.texasholdem_kotlin
 
+import net.kyori.adventure.text.Component
+import org.bukkit.Material
+import org.bukkit.inventory.ItemStack
 import kotlin.math.floor
 import kotlin.math.log10
 import kotlin.math.pow
@@ -22,6 +25,14 @@ object Utility {
         }
         else yen.append("0").reverse()
         return yen.toString()
+    }
+
+    fun createGUIItem(material: Material, amount: Int, name: String): ItemStack {
+        val item= ItemStack(material, amount)
+        val meta=item.itemMeta
+        meta.displayName(Component.text(name))
+        item.itemMeta = meta
+        return item
     }
 
 }

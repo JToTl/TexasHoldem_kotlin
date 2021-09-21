@@ -19,10 +19,9 @@ class Main : JavaPlugin() {
         lateinit var con: Config
         lateinit var texasHoldemTables:HashMap<UUID, TexasHoldem>
         lateinit var currentPlayers:HashMap<UUID, UUID>
-        lateinit var plugin: Plugin
+        lateinit var plugin: JavaPlugin
         lateinit var playable:AtomicBoolean
         lateinit var vault: VaultManager
-        lateinit var mySQL: MySQLManager
 
 
         fun getPlData(player: Player): TexasHoldem.PlayerData?{
@@ -47,7 +46,6 @@ class Main : JavaPlugin() {
         playable=AtomicBoolean()
         playable.set(config.getBoolean("canPlay"))
         vault = VaultManager(this)
-        mySQL = MySQLManager(this, "TexasHoldem")
         server.pluginManager.registerEvents(TexasHoldem_Event,this)
         server.pluginManager.registerEvents(AllinORFold_Event,this)
         getCommand("poker")!!.setExecutor(TexasHoldem_Command)
