@@ -7,6 +7,7 @@ import ltotj.minecraft.texasholdem_kotlin.MySQLManager
 import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
 import ltotj.minecraft.texasholdem_kotlin.game.TexasHoldem
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
 import org.bukkit.Bukkit
 import org.bukkit.Server
 import org.bukkit.command.Command
@@ -21,6 +22,10 @@ import kotlin.math.abs
 
 
 object TexasHoldem_Command: CommandExecutor, TabCompleter {
+
+    fun createClickEventText_run(text:String,command:String):Component{
+        return Component.text(text).clickEvent(ClickEvent.runCommand(command))
+    }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean{
         if (args.isEmpty())return false
@@ -90,7 +95,8 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                     }
                     if (args.size > 4 && args[4].toIntOrNull() != null && abs(args[4].toInt() - 3) < 3) Main.texasHoldemTables[uuid]!!.roundTimes = args[4].toInt()
                     Main.texasHoldemTables[uuid]?.addPlayer(sender)
-                    Bukkit.broadcast(Component.text("§l" + sender.name + "§aが§cチップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！ §4注意 参加必要金額" + getYenString((args[1].toDouble() * Main.con.getDouble("firstNumberOfChips")))), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(createClickEventText_run("§l" + sender.name + "§aが§cチップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！  §4参加必要金額" + getYenString((args[1].toDouble() * Main.con.getDouble("firstNumberOfChips"))),"/poker join ${sender.name}"), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(createClickEventText_run("§e§l[ここをクリックでポーカーに参加]","/poker join ${sender.name}"))
                     Main.texasHoldemTables[uuid]?.start()
                 }
             }
@@ -104,7 +110,7 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
             }
             "help" -> {
                 sender.sendMessage(arrayOf("§e==============[${Main.pluginTitle}]==============",
-                        "§e/poker start <チップ一枚あたりの金額:10000円以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人) (周回数：1〜5) §d-> テキサスホールデムの参加者を募集します 参加人数分だけゲームが行われます §d注意 設定金額×${Main.con.getInt("firstNumberOfChips")}円が必要です",
+                        "§e/poker start <チップ一枚あたりの金額:10000円以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人) (周回数：1〜5) §d-> テキサスホールデムの参加者を募集します 参加人数分だけゲームが行われます §d設定金額×${Main.con.getInt("firstNumberOfChips")}円が必要です",
                         "§e/poker join <募集している人のID> §d-> テキサスホールデムに参加します",
                         "§e/poker open §d-> 参加中のゲーム画面を開きます",
                         "§e/poker list §d-> 参加可能な部屋の一覧を表示します"))

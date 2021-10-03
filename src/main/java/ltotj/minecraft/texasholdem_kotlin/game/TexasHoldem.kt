@@ -11,11 +11,14 @@ import ltotj.minecraft.texasholdem_kotlin.Main.Companion.vault
 import ltotj.minecraft.texasholdem_kotlin.MySQLManager
 import ltotj.minecraft.texasholdem_kotlin.Utility.createGUIItem
 import ltotj.minecraft.texasholdem_kotlin.Utility.getYenString
+import ltotj.minecraft.texasholdem_kotlin.game.command.TexasHoldem_Command
 import ltotj.minecraft.texasholdem_kotlin.game.utility.Card
 import ltotj.minecraft.texasholdem_kotlin.game.utility.Deck
 import ltotj.minecraft.texasholdem_kotlin.game.utility.PlayerCards
 import ltotj.minecraft.texasholdem_kotlin.game.utility.PlayerGUI
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.event.ClickEvent
 import org.bukkit.Bukkit
 import org.bukkit.Bukkit.getPlayer
 import org.bukkit.Material
@@ -187,9 +190,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                     }
                     if (i == 0) {
                         playerList[turnSeat()].addedChips = 0
-                        if (!playerList[turnSeat()].call()) {
-                            playerList[turnSeat()].fold()
-                        }
+                        playerList[turnSeat()].fold()
                         break
                     }
                     if (!playerList[turnSeat()].action && playerList[turnSeat()].preCall.get()) {
@@ -270,6 +271,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
         setPot()
         for(i in 20..24)removeItem(i)
+    }
+
+    fun createClickEventText_run(text:String,command:String):Component{
+        return text(text).clickEvent(ClickEvent.runCommand(command))
     }
 
     protected fun resetBet(){
@@ -631,11 +636,9 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             }
             for(playerData in playerList){
                 val move=minBet.coerceAtMost(playerData.totalBetAmount)
-                println("totalBetAmountは${playerData.totalBetAmount}")
                 instancePot+=move
                 pot-=move
                 playerData.totalBetAmount-=move
-                println("potは$pot")
             }
             toBB+=instancePot%handsList[0].size
             instancePot/=handsList[0].size
@@ -657,14 +660,17 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     override fun run() {
         for (i in 0..59) {
-            if (i % 10 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate.toDouble())), Server.BROADCAST_CHANNEL_USERS)
+            if (i % 20 == 0&&i!=0) {
+                Bukkit.broadcast(createClickEventText_run("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加  §4参加必要金額" + getYenString(firstChips * rate.toDouble()),"/poker join ${masterPlayer.name}"), Server.BROADCAST_CHANNEL_USERS)
+                Bukkit.broadcast(TexasHoldem_Command.createClickEventText_run("§e§l[ここをクリックでポーカーに参加]", "/poker join ${masterPlayer.name}"))
+            }
             if (playerList.size == maxSeat) break
             sleep(1000)
         }
         isRunning = true
         val seatSize = playerList.size
         if (seatSize < minSeat) {
-            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人が集まらなかったので中止になりました"), Server.BROADCAST_CHANNEL_USERS)
+            Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人数不足により解散しました"), Server.BROADCAST_CHANNEL_USERS)
             cancelGame()
             return
         }
