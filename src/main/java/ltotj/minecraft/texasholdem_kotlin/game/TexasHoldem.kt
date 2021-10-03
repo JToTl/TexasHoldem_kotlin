@@ -174,6 +174,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     }
 
+    fun debugSetCard(player:Player,suit:Int,num:Int,dif:Int){
+        getPlData(player.uniqueId)!!.playerCards.cards[dif]=Card(suit,num)
+    }
+
     protected open fun actionTime(dif: Int) {
         turnCount += dif
         while ((((allInList.size+foldedList.size+1)<playerList.size||bet!=0)&&foldedList.size < playerList.size-1 && ((playerList[turnSeat()].instBet != bet) || turnCount < playerList.size + dif))) {
@@ -584,7 +588,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                         break
                     }
                     if(round(playerList[handsList[j][0]].hand/10)==round(playerList[i].hand/10)){
-                        handsList[j].add(j)
+                        handsList[j].add(i)
                         break
                     }
                     k=if(j==k&&round(playerList[handsList[j][0]].hand/10)>round(playerList[i].hand/10)) j+1 else k
@@ -603,6 +607,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
         else {
             setDrawItem()
+            sleep(1500)
         }
         for(i in 0..4)removeItem(20 + i)
 
@@ -630,12 +635,14 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                     if(handsList.size==0)break;
                 }
             }
-
             for(i in handsList[0]){
+                println("${i},${handsList[0]}")
                 minBet= minBet.coerceAtMost(playerList[i].totalBetAmount)
+                println("minBetは$minBet")
             }
             for(playerData in playerList){
                 val move=minBet.coerceAtMost(playerData.totalBetAmount)
+                println("${playerData.player.name}のmoveは$move")
                 instancePot+=move
                 pot-=move
                 playerData.totalBetAmount-=move
@@ -643,8 +650,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             toBB+=instancePot%handsList[0].size
             instancePot/=handsList[0].size
             for(i in handsList[0]){
+                println("${i},${handsList[0]}")
                 playerList[i].playerChips+=instancePot
                 sendRewardGUI(i,loop)
+                println("${handsList[0]}")
             }
             loop++
         }

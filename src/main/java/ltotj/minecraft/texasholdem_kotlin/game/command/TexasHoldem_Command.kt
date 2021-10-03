@@ -1,6 +1,7 @@
 package ltotj.minecraft.texasholdem_kotlin.game.command
 
 import ltotj.minecraft.texasholdem_kotlin.Main
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.getTable
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.playable
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.plugin
 import ltotj.minecraft.texasholdem_kotlin.MySQLManager
@@ -31,6 +32,9 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
         if (args.isEmpty())return false
         if(sender.hasPermission("poker.admin")){
             when(args[0]){
+                "test"->{
+                    getTable(sender as Player)!!.debugSetCard(sender,args[1].toInt(),args[2].toInt(),args[3].toInt())
+                }
                 "on" -> {
                     playable.set(true)
                     plugin.config.set("canPlay", true)

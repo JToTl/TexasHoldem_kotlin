@@ -121,7 +121,9 @@ class PlayerGUI(private val seat: Int,name: String){
     }
 
     fun setDrawGame(){
-        for(i in 0..4)setGUIItem(20+i,Material.BARRIER,"DRAW",listOf("引き分け 同率一位のプレイヤーに賞金が分配されます"))
+        for(i in 0..4){
+            setGUIItem(20+i,Material.BARRIER,"DRAW",listOf("引き分け 同率一位のプレイヤーに賞金が分配されます"))
+        }
     }
 
     fun setRaiseButton(){
