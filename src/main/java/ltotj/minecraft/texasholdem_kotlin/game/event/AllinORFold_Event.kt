@@ -13,6 +13,8 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.ItemStack
 
+
+//未実装
 object AllinORFold_Event:Listener {
 
     private fun clickSound(player: Player){

@@ -11,6 +11,7 @@ import org.bukkit.entity.Player
 import java.lang.Double.max
 import kotlin.math.round
 
+//未実装
 class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Int) : TexasHoldem(masterPlayer, maxSeat, minSeat, rate) {
 
     private var noMoneyCount=0

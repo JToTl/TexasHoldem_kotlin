@@ -14,6 +14,7 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import kotlin.math.abs
 
+//未実装
 object AllinORFold_Command:CommandExecutor{
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean{
