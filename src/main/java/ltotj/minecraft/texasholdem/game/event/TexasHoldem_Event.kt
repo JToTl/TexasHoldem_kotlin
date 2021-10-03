@@ -22,7 +22,7 @@ object TexasHoldem_Event :Listener{
         player.playSound(player.location,Sound.BLOCK_COMPOSTER_FILL,2F,2F)
     }
 
-    private fun matchItem(item:ItemStack,slot:Int,key:String):Int{//不格好だけどしょうがないやん
+    private fun matchItem(item:ItemStack,slot:Int,key:String):Int{
         if(slot in 45..52&& Main.plugin.config.getString("$key.$slot.material")==item.type.toString()){
             return slot
         }
@@ -53,7 +53,7 @@ object TexasHoldem_Event :Listener{
                 when (matchItem(item,e.slot, "raise")) {
                     45 -> {
                         getPlData(player)?.addedChips=0
-                        getPlData(player)?.playerGUI?.setActionButtons()
+                        getPlData(player)?.setActionButtons()
                     }
                     46 -> getPlData(player)?.downBet()
                     49 -> getPlData(player)?.preCall!!.set(true)

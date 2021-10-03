@@ -25,13 +25,13 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                     playable.set(true)
                     plugin.config.set("canPlay",true)
                     plugin.saveConfig()
-                    sender.sendMessage("[TexasHoldem]をオンにしました")
+                    sender.sendMessage("[${Main.pluginTitle}]をオンにしました")
                 }
                 "off"->{
                     playable.set(false)
                     plugin.config.set("canPlay",false)
                     plugin.saveConfig()
-                    sender.sendMessage("[TexasHoldem]をオフにしました")
+                    sender.sendMessage("[${Main.pluginTitle}]をオフにしました")
                 }
             }
         }
@@ -42,7 +42,7 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
         val uuid=sender.uniqueId
         when(args[0]){
             "start"->{
-                if(!playable.get())sender.sendMessage("[TexasHoldem]はただいま停止中です")
+                if(!playable.get())sender.sendMessage("[${Main.pluginTitle}]はただいま停止中です")
                 else if(Main.currentPlayers.containsKey(uuid))sender.sendMessage("あなたは既にゲームに参加しています！/poker open でゲーム画面を開きましょう！")
                 else if(args.size<3||args[1].toIntOrNull()==null||args[2].toIntOrNull()==null||args[1].toInt()< Main.con.getInt("minChipRate")||
                         args[1].toInt()> Main.con.getInt("maxChipRate")|| abs(args[2].toInt() - 3) >1)sender.sendMessage("/poker start <チップ一枚あたりの金額:${getYenString(Main.con.getDouble("minChipRate"))}以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人)")
@@ -54,14 +54,14 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                     else{
                         Main.texasHoldemTables[uuid] = TexasHoldem(sender, 4, args[2].toInt(), args[1].toDouble())
                     }
-                    if(args.size>4&&args[4].toIntOrNull()!=null&& abs(args[4].toInt()-2) >1) Main.texasHoldemTables[uuid]!!.roundTimes=args[4].toInt()
+                    if(args.size>4&&args[4].toIntOrNull()!=null&& abs(args[4].toInt()-3) <3) Main.texasHoldemTables[uuid]!!.roundTimes=args[4].toInt()
                     Main.texasHoldemTables[uuid]?.addPlayer(sender)
                     Bukkit.broadcast(Component.text("§l"+sender.name+"§aが§cチップ一枚"+getYenString(args[1].toDouble())+"§r、§l§e募集人数"+args[2]+"〜"+ Main.texasHoldemTables[uuid]!!.maxSeat+"人、§c周回数"+ Main.texasHoldemTables[uuid]!!.roundTimes+"回§aで§7§lテキサスホールデム§aを募集中！§r/poker join "+sender.name+" §l§aで参加しましょう！ §4注意 参加必要金額"+getYenString((args[1].toDouble()* Main.con.getDouble("firstNumberOfChips")))), Server.BROADCAST_CHANNEL_USERS)
                     Main.texasHoldemTables[uuid]?.start()
                 }
             }
             "join"->{
-                if(!playable.get())sender.sendMessage("[TexasHoldem]はただいま停止中です")
+                if(!playable.get())sender.sendMessage("[${Main.pluginTitle}]はただいま停止中です")
                 else if(Main.currentPlayers.containsKey(uuid))sender.sendMessage("あなたは既にゲームに参加しています！/poker open でゲーム画面を開きましょう！")
                 else if(args.size<2)sender.sendMessage("/poker join <募集している人のID>")
                 else if(Bukkit.getPlayer(args[1]) ==null|| !Main.texasHoldemTables.containsKey(Bukkit.getPlayerUniqueId(args[1])))sender.sendMessage(args[1]+"さんはゲームを開催していません")
@@ -69,7 +69,7 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                 else if(!Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.addPlayer(sender))sender.sendMessage("既にゲームが始まっています")
             }
             "help"->{
-                sender.sendMessage("/poker start <チップ一枚あたりの金額:10000円以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人) (周回数：１〜４):テキサスホールデムの参加者を募集します 参加人数分だけゲームが行われます §d注意 設定金額×"+ Main.con.getInt("firstNumberOfChips")+"円が必要です")
+                sender.sendMessage("/poker start <チップ一枚あたりの金額:10000円以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人) (周回数：1〜5):テキサスホールデムの参加者を募集します 参加人数分だけゲームが行われます §d注意 設定金額×"+ Main.con.getInt("firstNumberOfChips")+"円が必要です")
                 sender.sendMessage("/poker join <募集している人のID> :テキサスホールデムに参加します")
                 sender.sendMessage("/poker open :参加中のゲーム画面を開きます")
                 sender.sendMessage("/poker list :参加可能な部屋の一覧を表示します")
@@ -111,7 +111,7 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                 3,4,5->if(args[0]=="start"){
                     if(args.size==3)return mutableListOf("最小募集人数（2〜4人）")
                     if(args.size==4)return mutableListOf("最大募集人数（2〜4人）")
-                    if(args.size==5)return mutableListOf("周回数")
+                    if(args.size==5)return mutableListOf("周回数（1〜5）")
                 }
             }
         }

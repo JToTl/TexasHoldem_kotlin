@@ -5,6 +5,7 @@ import ltotj.minecraft.texasholdem_kotlin.Main.Companion.con
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.currentPlayers
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.playable
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.plugin
+import ltotj.minecraft.texasholdem_kotlin.Main.Companion.pluginTitle
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.texasHoldemTables
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.vault
 import ltotj.minecraft.texasholdem_kotlin.MySQLManager
@@ -93,9 +94,27 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             return true
         }
 
+        fun setActionButtons(){
+            playerGUI.setActionButton(46)
+            playerGUI.setActionButton(51)
+            if(playerChips+instBet>bet){
+                if(bet!=0)playerGUI.setActionButton(47)
+                playerGUI.setActionButton(50)
+            }
+            if(bet==0){
+                playerGUI.setActionButton(48)
+                playerGUI.setActionButton(49)
+            }
+        }
+
         fun drawCard(){
-            val card=deck.draw()
-            playerCards.addCard(card)
+            if(foldedList.contains(seat)){
+                playerCards.addCard(Card(-1,-1))
+            }
+            else {
+                val card = deck.draw()
+                playerCards.addCard(card)
+            }
         }
 
         fun raiseBet(){
@@ -120,7 +139,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
         open fun allIn():Boolean{
             instBet+=playerChips
-            bet= kotlin.math.max(instBet,playerChips)
+            bet= kotlin.math.max(kotlin.math.max(instBet,playerChips),bet)
             totalBetAmount+=playerChips
             setItemAlPl(chipPosition(seat),createGUIItem(Material.NETHER_STAR,1,"§e§lオールイン:${instBet}枚"))
             playSoundAlPl(Sound.BLOCK_ENCHANTMENT_TABLE_USE,2F)
@@ -149,37 +168,40 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     protected open fun actionTime(dif: Int) {
         turnCount += dif
-        while (allInList.size<(playerList.size-foldedList.size)&&foldedList.size < playerList.size-1 && ((playerList[turnSeat()].instBet != bet) || turnCount < playerList.size + dif)) {
+        while ((((allInList.size+foldedList.size+1)<playerList.size||bet!=0)&&foldedList.size < playerList.size-1 && ((playerList[turnSeat()].instBet != bet) || turnCount < playerList.size + dif))) {
+            val playerData = playerList[turnSeat()]
             setGUI(turnSeat())
-            playerList[turnSeat()].preCall.set(false)
-            for (i in 600 downTo 0) {
-                if (foldedList.contains(turnSeat())||allInList.contains(turnSeat())) break
-                sleep(50)
-                if (i % 20 == 0) {
-                    playSoundAlPl(Sound.BLOCK_STONE_BUTTON_CLICK_ON, 2F)
-                    setClock(i / 20)
-                }
-                if (i == 0) {
-                    playerList[turnSeat()].addedChips = 0
-                    if (!playerList[turnSeat()].call()) {
-                        playerList[turnSeat()].fold()
+            playerData.preCall.set(false)
+            playerData.player.playSound(playerData.player.location, Sound.BLOCK_NOTE_BLOCK_BELL, 2F, 2F)
+            if (!foldedList.contains(turnSeat()) && !allInList.contains(turnSeat())) {
+                for (i in 600 downTo 0) {
+                    sleep(50)
+                    if (i % 20 == 0) {
+                        playSoundAlPl(Sound.BLOCK_STONE_BUTTON_CLICK_ON, 2F)
+                        setClock(i / 20)
                     }
-                    break
-                }
-                if(!playerList[turnSeat()].action&&playerList[turnSeat()].preCall.get()){
-                    playerList[turnSeat()].preCall.set(false)
-                    playerList[turnSeat()].call()
-                }
-                if(playerList[turnSeat()].action){
-                    playerList[turnSeat()].action=false
-                    break
+                    if (i == 0) {
+                        playerList[turnSeat()].addedChips = 0
+                        if (!playerList[turnSeat()].call()) {
+                            playerList[turnSeat()].fold()
+                        }
+                        break
+                    }
+                    if (!playerList[turnSeat()].action && playerList[turnSeat()].preCall.get()) {
+                        playerList[turnSeat()].preCall.set(false)
+                        playerList[turnSeat()].call()
+                    }
+                    if (playerList[turnSeat()].action) {
+                        playerList[turnSeat()].action = false
+                        break
+                    }
                 }
             }
             playerList[turnSeat()].playerGUI.removeButton()
             removeItem(chipPosition(turnSeat()) - 3)
             removeItem(19)
             setCoin(turnSeat())
-            turnCount+=1
+            turnCount += 1
         }
         for(i in 0 until playerList.size){
             if(!foldedList.contains(i)) {
@@ -199,7 +221,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
     }
 
     open fun addPlayer(player: Player):Boolean{//メインスレッド専用
-        if(playerList.size>maxSeat||isRunning)return false
+        if(playerList.size>=maxSeat||isRunning)return false
         seatMap[player.uniqueId]=playerList.size
         vault.withdraw(player.uniqueId,rate*firstChips)
         playerList.add(PlayerData(player, playerList.size))
@@ -234,9 +256,12 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         for(playerData in playerList){
             playerData.hand=0.0
             playerData.reset()
-            playerData.drawCard()
-            playerData.drawCard()
             removeItem(chipPosition(playerData.seat))
+            if(playerData.playerChips==0){
+                foldedList.add(playerData.seat)
+            }
+            playerData.drawCard()
+            playerData.drawCard()
         }
         setPot()
         for(i in 20..24)removeItem(i)
@@ -309,7 +334,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 if (!openCom.contains(j)&&((ins!=18&&ins!=15)||community[j].suit == insSuit)&& community[j].num == getDigit(playerList[seat].hand, 2 * i + 2, 2 * i + 4)) {
                     openCom.add(j)
                     flag = true
-                    break;
+                    break
                 }
             }
             if (flag) {
@@ -374,11 +399,39 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         return 0
     }
 
+    protected fun cancelGame(){
+        for(i in 0 until playerList.size){
+            vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips)
+            playerList[i].playerChips=0//安全のため
+            currentPlayers.remove(playerList[i].player.uniqueId)
+            playerList[i].player.sendMessage("§e§lゲームがキャンセルされたため、返金されました")
+        }
+    }
+
+    protected fun savePlayerData(){
+        for(playerData in playerList){
+            val result=mySQL.query("select totalWin,win from playerData where uuid='${playerData.player.uniqueId}';")
+            if(result==null){
+                mySQL.close()
+                println("[$pluginTitle]データベース接続エラー")
+                return
+            }
+            if(result.next()){
+                mySQL.execute("update playerData set totalWin=${result.getInt("totalWin")+playerData.playerChips - firstChips},win=${result.getInt("win")+kotlin.math.max(playerData.playerChips - firstChips,0)} where uuid='${playerData.player.uniqueId}';")
+            }
+            else{
+                mySQL.execute("insert into playerData(name,uuid,totalWin,win) values('${playerData.player.name}','${playerData.player.uniqueId}',${playerData.playerChips - firstChips},${kotlin.math.max(playerData.playerChips - firstChips,0)});")
+            }
+            result.close()
+            mySQL.close()
+        }
+    }
+
     protected fun endGame() {
-        texasHoldemTables.remove(masterPlayer.uniqueId)
         sleep(1000)
+        texasHoldemTables.remove(masterPlayer.uniqueId)
         val query = StringBuilder()
-        query.append("INSERT INTO texasholdem_gamedata(startTime,endTime,P1,P2,P3,P4,chipRate,firstChips,P1Chips,P2Chips,P3Chips,P4Chips) VALUES('" + getDateForMySQL(startTime) + "','" + getDateForMySQL(Date()) + "'")
+        query.append("INSERT INTO gameLog(startTime,endTime,gameName,P1,P2,P3,P4,chipRate,firstChips,P1Chips,P2Chips,P3Chips,P4Chips) VALUES('${getDateForMySQL(startTime)}','${getDateForMySQL(Date())}','TexasHoldem'")
         for (i in 0 until playerList.size) {
             query.append(",'" + playerList[i].player.name + "'")
             vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips)
@@ -398,6 +451,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
             }
         })
+        savePlayerData()
     }
 
     protected fun sendResult(){
@@ -437,7 +491,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     protected open fun setGUI(turnS: Int){
         for(i in 0 until playerList.size){
-            if(i==turnS)playerList[i].playerGUI.setActionButtons()
+            if(i==turnS)playerList[i].setActionButtons()
             playerList[i].playerGUI.setTurnPBlo(turnS)
         }
     }
@@ -456,37 +510,46 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         val item=if(rank==0) ItemStack(Material.GOLD_INGOT) else ItemStack(Material.GOLD_NUGGET)
         val direction=if(seat<2) 1 else -1
         if(seat%3==0) {
-            sleep(400)
+            sleep(150)
             setItemAlPl(24, item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(24)
             setItemAlPl(24+9*direction, item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(24+9*direction)
             setItemAlPl(25 + 9*direction,item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(25 + 9*direction)
             setItemAlPl(26 + 9*direction,item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(26 + 9*direction)
-            playSoundAlPl(Sound.BLOCK_ANVIL_LAND, 2F)
+            playSoundAlPl(Sound.ENTITY_PLAYER_LEVELUP, 2F)
         }
         else{
-            sleep(400)
+            sleep(150)
             setItemAlPl(24,item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(24)
             setItemAlPl(23,item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(23)
             setItemAlPl(22,item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(22)
             setItemAlPl(21,item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(21)
             setItemAlPl(21+9*direction,item)
-            sleep(400)
+            playSoundAlPl(Sound.BLOCK_NOTE_BLOCK_HARP,2F)
+            sleep(150)
             removeItem(21+9*direction)
             playSoundAlPl(Sound.ENTITY_PLAYER_LEVELUP, 2F)
         }
@@ -586,7 +649,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     override fun run() {
         for (i in 0..59) {
-            if (i % 10 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + firstChips * rate), Server.BROADCAST_CHANNEL_USERS)
+            if (i % 10 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)), Server.BROADCAST_CHANNEL_USERS)
             if (playerList.size == maxSeat) break
             sleep(1000)
         }
@@ -594,11 +657,14 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         val seatSize = playerList.size
         if (seatSize < minSeat) {
             Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人が集まらなかったので中止になりました"), Server.BROADCAST_CHANNEL_USERS)
-            endGame()
+            cancelGame()
             return
         }
         for (times in 0 until seatSize * roundTimes) {
             reset()
+            if(foldedList.size==playerList.size-1){
+                break
+            }
             for (i in 0 until seatSize) {
                 playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
                 setPlayerCard(i, 0)

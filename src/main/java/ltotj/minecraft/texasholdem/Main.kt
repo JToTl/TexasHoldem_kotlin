@@ -22,6 +22,7 @@ class Main : JavaPlugin() {
         lateinit var plugin: JavaPlugin
         lateinit var playable:AtomicBoolean
         lateinit var vault: VaultManager
+        var pluginTitle="TexasHoldem"
 
 
         fun getPlData(player: Player): TexasHoldem.PlayerData?{

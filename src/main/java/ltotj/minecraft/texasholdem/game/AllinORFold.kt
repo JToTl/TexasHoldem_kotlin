@@ -110,7 +110,7 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
 
     override fun run() {
         for (i in 0..59) {
-            if (i % 20 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aを募集中・・・残り" + (60 - i) + "秒 §r/aof join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)),Server.BROADCAST_CHANNEL_USERS)
+            if (i % 20 == 0 && i != 0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aを募集中・・・残り" + (60 - i) + "秒 §r/aof join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)), Server.BROADCAST_CHANNEL_USERS)
             if (playerList.size == maxSeat) break
             sleep(1000)
         }
@@ -123,7 +123,7 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
         }
         for (times in 0..seatSize * roundTimes) {
             reset()//ここで所持金0のプレイヤーをカウント
-            if(noMoneyCount==playerList.size-1)break
+            if (noMoneyCount == playerList.size - 1) break
             for (i in 0 until seatSize) {
                 playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
                 setPlayerCard(i, 0)
@@ -149,38 +149,19 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
             openCommunityCard(4)
 
             playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
-            for (i in 0..seatSize) if (!foldedList.contains(i)) openPlCard(i)
+            for (i in 0 until seatSize) if (!foldedList.contains(i)) openPlCard(i)
             sleep(2000)
-//            var winHand = 0.0
-//            for (i in 0..seatSize) {
-//                if (!foldedList.contains(i)) {//displayHand実行によりhandが保存される
-//                    winHand = max(winHand, round((playerList[i].hand / 10)))
-//                    displayHand(i)
-//                    sleep(5000)
-//                    reloadGUI(i)
-//                }
-//            }
-//            for (i in 0..seatSize) if (!foldedList.contains(i) && round((playerList[i].hand / 10)) == winHand) winners.add(i)
-//            //pot分配
-//            for (i in winners) playerList[i].playerChips += pot / winners.size
-//            if (winners.size == 1) for (i in 0..7) {
-//                setWinnerHead(i % 2 == 0, playerList[winners[0]].getHead())
-//                sleep(500)
-//            }
-//            else {
-//                setDrawItem()
-//                sleep(4000)
-//            }
-            firstSeat+=1
-            for(i in 0..seatSize){
+
+            showAndPayReward()
+
+            sleep(4000)
+            for (i in 0 until seatSize) {
                 removeItem(cardPosition(i))
                 removeItem(cardPosition(i) + 1)
             }
-            for(i in 0..4)removeItem(20 + i)
-            firstSeat+=1
+            firstSeat += 1
         }
         endGame()
         sendResult()
     }
-
 }

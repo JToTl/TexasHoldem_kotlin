@@ -2,6 +2,7 @@ package ltotj.minecraft.texasholdem_kotlin.game.utility
 
 
 import ltotj.minecraft.texasholdem_kotlin.Main.Companion.con
+import ltotj.minecraft.texasholdem_kotlin.Utility.createGUIItem
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
@@ -11,6 +12,9 @@ class Card (val suit:Int,val num:Int){
 
 
     fun getCard():ItemStack{
+        if(num==-1){
+            return createGUIItem(Material.BARRIER,1,"§4§lこのゲームにはもう参加できません")
+        }
         val material= Material.valueOf(con.getString("cardMaterial" ))
         val item=ItemStack(material,1)
         val meta=item.itemMeta
