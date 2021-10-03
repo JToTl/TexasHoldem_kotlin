@@ -5,18 +5,18 @@ mysql:
   pass: "JToTl"
   db: "texasholdem_database"
 
-minChipRate: 1000
-maxChipRate: 10000000
+minChipRate: 1 #int
+maxChipRate: 10000000 #int
 firstNumberOfChips: 30
 canPlay: true
 
 #最初の0~3はスペード、ダイヤ、ハート、クラブを表す
 #その後は数字　14は1のこと
 
-cardMaterial: "GOLD_NUGGET"
+cardMaterial: "BIRCH_SAPLING"
 
 faceDownCard:
-  customModelData: 777
+  customModelData: 53
 
 "0":
   "14":
@@ -48,87 +48,87 @@ faceDownCard:
 
 "1":
   "14":
-    customModelData: 101
+    customModelData: 14
   "2":
-    customModelData: 102
+    customModelData: 15
   "3":
-    customModelData: 103
+    customModelData: 16
   "4":
-    customModelData: 104
+    customModelData: 17
   "5":
-    customModelData: 105
+    customModelData: 18
   "6":
-    customModelData: 106
+    customModelData: 19
   "7":
-    customModelData: 107
+    customModelData: 20
   "8":
-    customModelData: 108
+    customModelData: 21
   "9":
-    customModelData: 109
+    customModelData: 22
   "10":
-    customModelData: 110
+    customModelData: 23
   "11":
-    customModelData: 111
+    customModelData: 24
   "12":
-    customModelData: 112
+    customModelData: 25
   "13":
-    customModelData: 113
+    customModelData: 26
 
 "2":
   "14":
-    customModelData: 201
+    customModelData: 27
   "2":
-    customModelData: 202
+    customModelData: 28
   "3":
-    customModelData: 203
+    customModelData: 29
   "4":
-    customModelData: 204
+    customModelData: 30
   "5":
-    customModelData: 205
+    customModelData: 31
   "6":
-    customModelData: 206
+    customModelData: 32
   "7":
-    customModelData: 207
+    customModelData: 33
   "8":
-    customModelData: 208
+    customModelData: 34
   "9":
-    customModelData: 209
+    customModelData: 35
   "10":
-    customModelData: 210
+    customModelData: 36
   "11":
-    customModelData: 211
+    customModelData: 37
   "12":
-    customModelData: 212
+    customModelData: 38
   "13":
-    customModelData: 213
+    customModelData: 39
 
 "3":
   "14":
-    customModelData: 301
+    customModelData: 40
   "2":
-    customModelData: 302
+    customModelData: 41
   "3":
-    customModelData: 303
+    customModelData: 42
   "4":
-    customModelData: 304
+    customModelData: 43
   "5":
-    customModelData: 305
+    customModelData: 44
   "6":
-    customModelData: 306
+    customModelData: 45
   "7":
-    customModelData: 307
+    customModelData: 46
   "8":
-    customModelData: 308
+    customModelData: 47
   "9":
-    customModelData: 309
+    customModelData: 48
   "10":
-    customModelData: 310
+    customModelData: 49
   "11":
-    customModelData: 311
+    customModelData: 50
   "12":
-    customModelData: 312
+    customModelData: 51
   "13":
-    customModelData: 313
+    customModelData: 52
 
 texasholdeminv:
   "45":
@@ -175,11 +175,11 @@ raise:
     lore:
   "47":
     material: "WHITE_STAINED_GLASS_PANE"
-    name: ""
+    name: "empty"
     lore:
   "48":
     material: "WHITE_STAINED_GLASS_PANE"
-    name: ""
+    name: "empty"
     lore:
   "49":
     material: "GREEN_WOOL"
@@ -187,11 +187,11 @@ raise:
     lore:
   "50":
     material: "WHITE_STAINED_GLASS_PANE"
-    name: ""
+    name: "empty"
     lore:
   "51":
     material: "WHITE_STAINED_GLASS_PANE"
-    name: ""
+    name: "empty"
     lore:
   "52":
     material: "BLUE_WOOL"

@@ -1,7 +1,4 @@
-
-apply plugin: 'java'
 apply plugin: 'kotlin'
-
 
 group = 'ltotj.minecraft'
 version = '1.0-SNAPSHOT'
@@ -16,13 +13,10 @@ configurations {
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
-        name = 'papermc-repo'
+        name = 'papermc'
         url = 'https://papermc.io/repo/repository/maven-public/'
-    }
-    maven {
-        name = 'spigotmc-repo'
-        url = 'https://hub.spigotmc.org/nexus/content/groups/public/'
     }
     maven {
         name = 'sonatype'
@@ -32,7 +26,7 @@ repositories {
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT'
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 import org.apache.tools.ant.filters.ReplaceTokens
@@ -47,7 +41,7 @@ processResources {
 }
 buildscript {
     ext{
-        kotlin_version = '1.4.21'
+        kotlin_version = '1.4.31'
         spigot_version = '1.17-R0.1-SNAPSHOT'
     }
     repositories {
@@ -55,7 +49,6 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-
     }
 }
 
@@ -79,3 +72,4 @@ repositories {
 dependencies {
     compileOnly "com.github.MilkBowl:VaultAPI:1.7"
 }
+

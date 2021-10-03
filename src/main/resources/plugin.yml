@@ -1,14 +1,17 @@
-name: TexasHoldem
+name: TexasHoldem_kotlin
 version: @version@
-main: ltotj.minecraft.texasholdem.Main
+main: ltotj.minecraft.texasholdem_kotlin.Main
 api-version: 1.17
-depend: [Vault]
+depend:
+  - Vault
 commands:
   poker:
     usage: "/poker help で使い方を確認しましょう"
+  aof:
+    usage: "/aof help"
 
 permissions:
-  poker.switch:
+  poker.admin:
     default: op
   poker.player:
     default: true
