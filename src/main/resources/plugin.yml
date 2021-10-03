@@ -7,8 +7,6 @@ depend:
 commands:
   poker:
     usage: "/poker help で使い方を確認しましょう"
-  aof:
-    usage: "/aof help"
 
 permissions:
   poker.admin:
