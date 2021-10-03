@@ -9,6 +9,9 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.*
+import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.collections.HashMap
 
@@ -22,6 +25,7 @@ class Main : JavaPlugin() {
         lateinit var plugin: JavaPlugin
         lateinit var playable:AtomicBoolean
         lateinit var vault: VaultManager
+        val executor=Executors.newCachedThreadPool()
         var pluginTitle="TexasHoldem"
 
 
@@ -48,9 +52,7 @@ class Main : JavaPlugin() {
         playable.set(config.getBoolean("canPlay"))
         vault = VaultManager(this)
         server.pluginManager.registerEvents(TexasHoldem_Event,this)
-        server.pluginManager.registerEvents(AllinORFold_Event,this)
         getCommand("poker")!!.setExecutor(TexasHoldem_Command)
-        getCommand("aof")!!.setExecutor(AllinORFold_Command)
     }
 
     override fun onDisable() {

@@ -11,7 +11,7 @@ import org.bukkit.entity.Player
 import java.lang.Double.max
 import kotlin.math.round
 
-class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double) : TexasHoldem(masterPlayer, maxSeat, minSeat, rate) {
+class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Int) : TexasHoldem(masterPlayer, maxSeat, minSeat, rate) {
 
     private var noMoneyCount=0
 
@@ -29,7 +29,7 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
     override fun addPlayer(player: Player):Boolean{//メインスレッド専用
         if(playerList.size>maxSeat||isRunning)return false
         seatMap[player.uniqueId]=playerList.size
-        Main.vault.withdraw(player.uniqueId,rate*firstChips)
+        Main.vault.withdraw(player.uniqueId,rate*firstChips.toDouble())
         playerList.add(PlayerData(player, playerList.size))
         Main.currentPlayers[player.uniqueId]=masterPlayer.uniqueId
         player.openInventory(playerList[seatMap[player.uniqueId]!!].playerGUI.inv)
@@ -110,7 +110,7 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Double
 
     override fun run() {
         for (i in 0..59) {
-            if (i % 20 == 0 && i != 0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aを募集中・・・残り" + (60 - i) + "秒 §r/aof join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)), Server.BROADCAST_CHANNEL_USERS)
+            if (i % 20 == 0 && i != 0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§8§lオールイン§0§l・§f§lオア§0§l・§7§lフォールド§aを募集中・・・残り" + (60 - i) + "秒 §r/aof join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate.toDouble())), Server.BROADCAST_CHANNEL_USERS)
             if (playerList.size == maxSeat) break
             sleep(1000)
         }

@@ -91,7 +91,7 @@ class PlayerGUI(private val seat: Int,name: String){
         inv.setItem(slot,item)
     }
 
-    fun setChips(seat: Int, amount: Int, rate: Double){
+    fun setChips(seat: Int, amount: Int, rate: Int){
         setGUIItem(chipPosition(seat), Material.GOLD_NUGGET, amount, "§l§yチップ", listOf("§c" + rate + "円"))
     }
 

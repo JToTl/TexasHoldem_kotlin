@@ -37,7 +37,7 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 
 
-open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, val rate: Double):Thread(){
+open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, val rate: Int):Thread(){
 
     protected open val playerList=ArrayList<PlayerData>()
     protected val seatMap=HashMap<UUID, Int>()
@@ -91,6 +91,9 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             instBet=bet
             addedChips=0
             action=true
+            if(bet==0){
+                setItemAlPl(chipPosition(seat), createGUIItem(Material.LIME_DYE,1,"§f§lチェック済み"))
+            }
             return true
         }
 
@@ -98,8 +101,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             playerGUI.setActionButton(46)
             playerGUI.setActionButton(51)
             if(playerChips+instBet>bet){
-                if(bet!=0)playerGUI.setActionButton(47)
-                playerGUI.setActionButton(50)
+                if(bet!=0) {
+                    playerGUI.setActionButton(47)
+                    playerGUI.setActionButton(50)
+                }
             }
             if(bet==0){
                 playerGUI.setActionButton(48)
@@ -223,7 +228,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
     open fun addPlayer(player: Player):Boolean{//メインスレッド専用
         if(playerList.size>=maxSeat||isRunning)return false
         seatMap[player.uniqueId]=playerList.size
-        vault.withdraw(player.uniqueId,rate*firstChips)
+        vault.withdraw(player.uniqueId,rate*firstChips.toDouble())
         playerList.add(PlayerData(player, playerList.size))
         currentPlayers[player.uniqueId]=masterPlayer.uniqueId
         player.openInventory(playerList[seatMap[player.uniqueId]!!].playerGUI.inv)
@@ -401,7 +406,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     protected fun cancelGame(){
         for(i in 0 until playerList.size){
-            vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips)
+            vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips.toDouble())
             playerList[i].playerChips=0//安全のため
             currentPlayers.remove(playerList[i].player.uniqueId)
             playerList[i].player.sendMessage("§e§lゲームがキャンセルされたため、返金されました")
@@ -417,10 +422,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 return
             }
             if(result.next()){
-                mySQL.execute("update playerData set totalWin=${result.getInt("totalWin")+playerData.playerChips - firstChips},win=${result.getInt("win")+kotlin.math.max(playerData.playerChips - firstChips,0)} where uuid='${playerData.player.uniqueId}';")
+                mySQL.execute("update playerData set totalWin=${result.getInt("totalWin")+(playerData.playerChips - firstChips)*rate},win=${result.getInt("win")+kotlin.math.max(playerData.playerChips - firstChips,0)*rate} where uuid='${playerData.player.uniqueId}';")
             }
             else{
-                mySQL.execute("insert into playerData(name,uuid,totalWin,win) values('${playerData.player.name}','${playerData.player.uniqueId}',${playerData.playerChips - firstChips},${kotlin.math.max(playerData.playerChips - firstChips,0)});")
+                mySQL.execute("insert into playerData(name,uuid,totalWin,win) values('${playerData.player.name}','${playerData.player.uniqueId}',${(playerData.playerChips - firstChips)*rate},${kotlin.math.max(playerData.playerChips - firstChips,0)*rate});")
             }
             result.close()
             mySQL.close()
@@ -434,7 +439,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         query.append("INSERT INTO gameLog(startTime,endTime,gameName,P1,P2,P3,P4,chipRate,firstChips,P1Chips,P2Chips,P3Chips,P4Chips) VALUES('${getDateForMySQL(startTime)}','${getDateForMySQL(Date())}','TexasHoldem'")
         for (i in 0 until playerList.size) {
             query.append(",'" + playerList[i].player.name + "'")
-            vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips)
+            vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips.toDouble())
             currentPlayers.remove(playerList[i].player.uniqueId)
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 playerList[i].player.closeInventory()
@@ -640,6 +645,9 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             }
             loop++
         }
+        if(loop>=20){
+            playable.set(false)
+        }
         if(toBB!=0){
             sleep(1000)
             playerList[firstSeat%playerList.size].playerChips+=toBB
@@ -649,7 +657,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
     override fun run() {
         for (i in 0..59) {
-            if (i % 10 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate)), Server.BROADCAST_CHANNEL_USERS)
+            if (i % 10 == 0&&i!=0) Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加 §4注意 参加必要金額" + getYenString(firstChips * rate.toDouble())), Server.BROADCAST_CHANNEL_USERS)
             if (playerList.size == maxSeat) break
             sleep(1000)
         }

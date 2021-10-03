@@ -32,10 +32,10 @@ object AllinORFold_Command:CommandExecutor{
                 else if(Main.vault.getBalance(uuid)<args[1].toInt()* Main.con.getDouble("firstNumberOfChips"))sender.sendMessage("所持金が足りません")
                 else{
                     if(args.size>3&&args[3].toIntOrNull()!=null&&args[2].toInt()<=args[3].toInt()&&args[3].toInt()<=4){
-                        Main.texasHoldemTables[uuid] = AllinORFold(sender, args[3].toInt(), args[2].toInt(), args[1].toDouble())
+                        Main.texasHoldemTables[uuid] = AllinORFold(sender, args[3].toInt(), args[2].toInt(), args[1].toInt())
                     }
                     else{
-                        Main.texasHoldemTables[uuid] = AllinORFold(sender, 4, args[2].toInt(), args[1].toDouble())
+                        Main.texasHoldemTables[uuid] = AllinORFold(sender, 4, args[2].toInt(), args[1].toInt())
                     }
                     if(args.size>4&&args[4].toIntOrNull()!=null&& abs(args[4].toInt()-2) >1) Main.texasHoldemTables[uuid]!!.roundTimes=args[4].toInt()
                     Main.texasHoldemTables[uuid]?.addPlayer(sender)
@@ -64,7 +64,7 @@ object AllinORFold_Command:CommandExecutor{
             "list"->{
                 sender.sendMessage("参加者募集中の部屋は以下の通りです")
                 for(texasholdem in Main.texasHoldemTables.values){
-                    if(!texasholdem.isRunning)sender.sendMessage("主催者："+texasholdem.masterPlayer.name+" 必要金額§4${getYenString(texasholdem.rate*texasholdem.firstChips)} §r募集人数："+texasholdem.minSeat+"〜"+texasholdem.maxSeat+"人")
+                    if(!texasholdem.isRunning)sender.sendMessage("主催者："+texasholdem.masterPlayer.name+" 必要金額§4${getYenString(texasholdem.rate*texasholdem.firstChips.toDouble())} §r募集人数："+texasholdem.minSeat+"〜"+texasholdem.maxSeat+"人")
                 }
             }
         }
