@@ -32,9 +32,6 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
         if (args.isEmpty())return false
         if(sender.hasPermission("poker.admin")){
             when(args[0]){
-                "test"->{
-                    getTable(sender as Player)!!.debugSetCard(sender,args[1].toInt(),args[2].toInt(),args[3].toInt())
-                }
                 "on" -> {
                     playable.set(true)
                     plugin.config.set("canPlay", true)
@@ -99,7 +96,7 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                     }
                     if (args.size > 4 && args[4].toIntOrNull() != null && abs(args[4].toInt() - 3) < 3) Main.texasHoldemTables[uuid]!!.roundTimes = args[4].toInt()
                     Main.texasHoldemTables[uuid]?.addPlayer(sender)
-                    Bukkit.broadcast(createClickEventText_run("§l" + sender.name + "§aが§cチップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！  §4参加必要金額" + getYenString((args[1].toDouble() * Main.con.getDouble("firstNumberOfChips"))),"/poker join ${sender.name}"), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(Component.text("§l" + sender.name + "§aが§cチップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！  §4参加必要金額" + getYenString((args[1].toDouble() * Main.con.getDouble("firstNumberOfChips")))), Server.BROADCAST_CHANNEL_USERS)
                     Bukkit.broadcast(createClickEventText_run("§e§l[ここをクリックでポーカーに参加]","/poker join ${sender.name}"))
                     Main.texasHoldemTables[uuid]?.start()
                 }

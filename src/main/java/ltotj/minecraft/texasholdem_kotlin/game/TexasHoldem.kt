@@ -101,6 +101,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
 
         fun setActionButtons(){
+            playerGUI.removeButton()
             playerGUI.setActionButton(46)
             playerGUI.setActionButton(51)
             if(playerChips+instBet>bet){
@@ -459,12 +460,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         for (i in 0 until playerList.size) query.append("," + playerList[i].playerChips + "")
         for (i in playerList.size until 4) query.append(",0")
         query.append(");")
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!mySQL.execute(query.toString())) {
-                playable.set(false)
-                println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
-            }
-        })
+        if (!mySQL.execute(query.toString())) {
+            playable.set(false)
+            println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
+        }
         savePlayerData()
     }
 
@@ -670,8 +669,8 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
     override fun run() {
         for (i in 0..59) {
             if (i % 20 == 0&&i!=0) {
-                Bukkit.broadcast(createClickEventText_run("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加  §4参加必要金額" + getYenString(firstChips * rate.toDouble()),"/poker join ${masterPlayer.name}"), Server.BROADCAST_CHANNEL_USERS)
-                Bukkit.broadcast(TexasHoldem_Command.createClickEventText_run("§e§l[ここをクリックでポーカーに参加]", "/poker join ${masterPlayer.name}"))
+                Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加  §4参加必要金額" + getYenString(firstChips * rate.toDouble())), Server.BROADCAST_CHANNEL_USERS)
+                Bukkit.broadcast(TexasHoldem_Command.createClickEventText_run("§e§l§n[ここをクリックでポーカーに参加]", "/poker join ${masterPlayer.name}"))
             }
             if (playerList.size == maxSeat) break
             sleep(1000)
