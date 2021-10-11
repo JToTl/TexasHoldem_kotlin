@@ -40,23 +40,58 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 
 
-open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: Int, val rate: Int):Thread(){
+open class TexasHoldem:Thread{
+
+    lateinit var masterPlayer: Player
+    var maxSeat:Int
+    var minSeat:Int
+    var rate:Int
+    var firstChips:Int
+    var roundTimes:Int
+
+
+    constructor(masterPlayer: Player, maxSeat: Int,minSeat: Int,rate: Int){
+        this.masterPlayer=masterPlayer
+        this.maxSeat=maxSeat
+        this.minSeat=minSeat
+        this.rate=rate
+        roundTimes=1
+        firstChips=con.getInt("firstNumberOfChips")
+    }
+
+    constructor(masterPlayer: Player, maxSeat: Int,minSeat: Int,rate: Int,roundTimes:Int){
+        this.masterPlayer=masterPlayer
+        this.maxSeat=maxSeat
+        this.minSeat=minSeat
+        this.rate=rate
+        this.roundTimes=roundTimes
+        firstChips=con.getInt("firstNumberOfChips")
+    }
+
+    constructor(masterPlayer: Player, maxSeat: Int,minSeat: Int,rate: Int,roundTimes:Int,firstChips:Int) {
+        this.masterPlayer = masterPlayer
+        this.maxSeat = maxSeat
+        this.minSeat = minSeat
+        this.rate = rate
+        this.roundTimes=roundTimes
+        this.firstChips=firstChips
+    }
+
 
     protected open val playerList=ArrayList<PlayerData>()
     protected val seatMap=HashMap<UUID, Int>()
     protected val deck= Deck()
-    val firstChips=con.getInt("firstNumberOfChips")
     var community=ArrayList<Card>()
     var pot=0
     var bet=0
     var turnCount=0
     var firstSeat=0
-    var roundTimes=1
+    var lastRaise=2
     var foldedList=ArrayList<Int>()
     var allInList=ArrayList<Int>()
     var isRunning=false
     private val mySQL = MySQLManager(Main.plugin, "TexasHoldem")
-    private val startTime=Date()
+    private var gameId=0
 
     open inner class PlayerData(val player: Player, val seat: Int) {
         open val playerGUI = PlayerGUI(seat,"TexasHoldem")
@@ -78,15 +113,16 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
 
         fun call():Boolean{
-            if(bet+addedChips-instBet>playerChips){
-                addedChips=0
+            if(playerChips==0){
                 return false
             }
-            if(playerChips==bet+addedChips-instBet){
+            if(bet+addedChips-instBet>=playerChips){
+                addedChips=0
                 allIn()
                 return true
             }
             playerGUI.removeButton()
+            lastRaise= kotlin.math.max(addedChips,lastRaise)
             bet+=addedChips
             playerChips+=instBet-bet
             totalBetAmount+=bet-instBet
@@ -102,18 +138,23 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
 
         fun setActionButtons(){
             playerGUI.removeButton()
-            playerGUI.setActionButton(46)
-            playerGUI.setActionButton(51)
+            playerGUI.setActionButton(46)//フォールド
+            playerGUI.setActionButton(53)//オールイン
             if(playerChips+instBet>bet){
                 if(bet!=0) {
-                    playerGUI.setActionButton(47)
-                    playerGUI.setActionButton(50)
+                    playerGUI.setActionButton(47)//レイズ
+                    playerGUI.setActionButton(50)//コール
                 }
             }
             if(bet==0){
-                playerGUI.setActionButton(48)
-                playerGUI.setActionButton(49)
+                playerGUI.setActionButton(48)//チェック
+                playerGUI.setActionButton(49)//ベット
             }
+        }
+
+        fun setRaiseMenu(){
+            addedChips=lastRaise
+            playerGUI.setRaiseButton(lastRaise)
         }
 
         fun drawCard(){
@@ -129,14 +170,14 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         fun raiseBet(){
             if(bet+addedChips-instBet<playerChips) {
                 addedChips++
-                playerGUI.reloadRaiseButton(addedChips)
+                playerGUI.reloadRaiseButton(addedChips,lastRaise)
             }
         }
 
         fun downBet(){
-            if(addedChips>0){
+            if(addedChips>lastRaise){
                 addedChips--
-                playerGUI.reloadRaiseButton(addedChips)
+                playerGUI.reloadRaiseButton(addedChips,lastRaise)
             }
         }
 
@@ -169,7 +210,9 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
 
         fun setUpCard(setSeat: Int, dif: Int){
-            if(setSeat==seat)playerGUI.setCard(cardPosition(setSeat) + dif, playerCards.cards[dif])
+            if(setSeat==seat||playerList[setSeat].playerChips==0){
+                playerGUI.setCard(cardPosition(setSeat) + dif, playerList[setSeat].playerCards.cards[dif])
+            }
             else playerGUI.setFaceDownCard(cardPosition(setSeat) + dif)
         }
 
@@ -227,6 +270,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             }
         }
         turnCount=0
+        lastRaise=2
         setPot()
         resetBet()
     }
@@ -263,6 +307,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         foldedList.clear()
         allInList.clear()
         turnCount=0
+        lastRaise=2
         pot=0
         for(playerData in playerList){
             playerData.hand=0.0
@@ -423,6 +468,26 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
     }
 
+    protected fun saveHandsData(){
+        val query=StringBuilder("insert into handsLog(gameId")
+        for(i in 0 until playerList.size){
+            query.append(",P${i+1}card")
+        }
+        query.append(",community,foldP) values(${gameId}")
+        for(i in 0 until playerList.size){
+            query.append(",'${playerList[i].playerCards.getCardName(0)}-${playerList[i].playerCards.getCardName(1)}bet${playerList[i].totalBetAmount}'")
+        }
+        query.append(",'${community[0].getCardString()}")
+        for(i in 1 until 5){
+            query.append("-${community[i].getCardString()}")
+        }
+        query.append("','${foldedList}');")
+        if(!mySQL.execute(query.toString())){
+            playable.set(false)
+            println("テキサスホールデムのハンドデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
+        }
+    }
+
     protected fun savePlayerData(){
         for(playerData in playerList){
             val result=mySQL.query("select totalWin,win from playerData where uuid='${playerData.player.uniqueId}';")
@@ -442,24 +507,20 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
     }
 
-    protected fun endGame() {
+    protected fun endGame(){
         sleep(1000)
         texasHoldemTables.remove(masterPlayer.uniqueId)
         val query = StringBuilder()
-        query.append("INSERT INTO gameLog(startTime,endTime,gameName,P1,P2,P3,P4,chipRate,firstChips,P1Chips,P2Chips,P3Chips,P4Chips) VALUES('${getDateForMySQL(startTime)}','${getDateForMySQL(Date())}','TexasHoldem'")
+        query.append("update gameLog set endTime='${getDateForMySQL(Date())}'")
         for (i in 0 until playerList.size) {
-            query.append(",'" + playerList[i].player.name + "'")
+            query.append(",P${i+1}Chips=${playerList[i].playerChips}")
             vault.deposit(playerList[i].player.uniqueId, rate * playerList[i].playerChips.toDouble())
             currentPlayers.remove(playerList[i].player.uniqueId)
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 playerList[i].player.closeInventory()
             })
         }
-        for (i in playerList.size until 4) query.append(",null")
-        query.append(",$rate,$firstChips")
-        for (i in 0 until playerList.size) query.append("," + playerList[i].playerChips + "")
-        for (i in playerList.size until 4) query.append(",0")
-        query.append(");")
+        query.append(" where id=${gameId};")
         if (!mySQL.execute(query.toString())) {
             playable.set(false)
             println("テキサスホールデムのデータをDBに保存できませんでした 安全のため、新規ゲームを開催不可能にします")
@@ -568,11 +629,13 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
     }
 
-    protected fun showAndPayReward(){
+    protected fun showAndPayReward(bb:Int){
         val handsList=ArrayList<ArrayList<Int>>()
         for (i in 0 until playerList.size) {
             if (!foldedList.contains(i)) {//displayHand実行によりhandが保存される
-                displayHand(i)
+                if(foldedList.size!=playerList.size-1) {
+                    displayHand(i)
+                }
                 var k=0
                 for(j in 0 until handsList.size+1){
                     if(j==handsList.size){//降順になるようにソート
@@ -593,7 +656,9 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                     k=if(j==k&&round(playerList[handsList[j][0]].hand/10)>round(playerList[i].hand/10)) j+1 else k
                 }
                 sleep(5000)
-                reloadGUI(i)
+                if(foldedList.size!=playerList.size-1) {
+                    reloadGUI(i)
+                }
             }
         }
         //表示
@@ -617,7 +682,7 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         //pot分配
         var toBB=0
         var loop=0
-        while(pot!=0&&loop<20){
+        while(pot>0&&loop<20){
             var instancePot=0
             var minBet=pot //最大値として値を一旦代入
 
@@ -635,13 +700,10 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 }
             }
             for(i in handsList[0]){
-                println("${i},${handsList[0]}")
                 minBet= minBet.coerceAtMost(playerList[i].totalBetAmount)
-                println("minBetは$minBet")
             }
             for(playerData in playerList){
                 val move=minBet.coerceAtMost(playerData.totalBetAmount)
-                println("${playerData.player.name}のmoveは$move")
                 instancePot+=move
                 pot-=move
                 playerData.totalBetAmount-=move
@@ -649,10 +711,8 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
             toBB+=instancePot%handsList[0].size
             instancePot/=handsList[0].size
             for(i in handsList[0]){
-                println("${i},${handsList[0]}")
                 playerList[i].playerChips+=instancePot
                 sendRewardGUI(i,loop)
-                println("${handsList[0]}")
             }
             loop++
         }
@@ -661,24 +721,58 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
         }
         if(toBB!=0){
             sleep(1000)
-            playerList[firstSeat%playerList.size].playerChips+=toBB
-            sendRewardGUI(firstSeat%playerList.size,2)
+            playerList[bb].playerChips+=toBB
+            sendRewardGUI(bb,2)
         }
+    }
+
+    private fun registerLog():Boolean{
+
+        val query = StringBuilder()
+        query.append("INSERT INTO gameLog(startTime,gameName,P1,P2,P3,P4,chipRate,firstChips) VALUES('${getDateForMySQL(Date())}','TexasHoldem'")
+        for (i in 0 until playerList.size) {
+            query.append(",'" + playerList[i].player.name + "'")
+        }
+        for (i in playerList.size until 4) query.append(",null")
+        query.append(",$rate,$firstChips);")
+        if(!mySQL.execute(query.toString())){
+            return false
+        }
+        val result=mySQL.query("select id from gameLog where P1='${playerList[0].player.name}' order by id desc limit 1;")?:return false
+
+        if(!result.next()){
+            result.close()
+            mySQL.close()
+            return false
+        }
+
+        gameId=result.getInt("id")
+        result.close()
+        mySQL.close()
+
+        return true
     }
 
     override fun run() {
         for (i in 0..59) {
             if (i % 20 == 0&&i!=0) {
-                Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§7§lテキサスホールデム§aを募集中・・・残り" + (60 - i) + "秒 §r/poker join " + masterPlayer.name + " §l§aで参加  §4参加必要金額" + getYenString(firstChips * rate.toDouble())), Server.BROADCAST_CHANNEL_USERS)
-                Bukkit.broadcast(TexasHoldem_Command.createClickEventText_run("§e§l§n[ここをクリックでポーカーに参加]", "/poker join ${masterPlayer.name}"))
-            }
-            if (playerList.size == maxSeat) break
-            sleep(1000)
+                Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aが§c初期チップ${firstChips}枚・チップ一枚${getYenString (rate.toDouble())}§aで§7§lテキサスホールデム§aを募集中・・・残り"+(60-i)+"秒 §r/poker join "+masterPlayer.name+" §l§aで参加  §4参加必要金額"+getYenString(firstChips * rate.toDouble())), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(TexasHoldem_Command.createClickEventText_run("§e§l§n[ここをクリックでポーカーに参加]", "/poker join ${masterPlayer.name}"))
+                }
+                        if (playerList.size == maxSeat) break
+                                sleep (1000)
         }
         isRunning = true
         val seatSize = playerList.size
         if (seatSize < minSeat) {
             Bukkit.broadcast(Component.text("§l" + masterPlayer.name + "§aの§7テキサスホールデム§aは人数不足により解散しました"), Server.BROADCAST_CHANNEL_USERS)
+            cancelGame()
+            return
+        }
+        if(!registerLog()){
+            for(playerData in playerList){
+                playerData.player.sendMessage("§4ゲームの情報を取得できませんでした")
+            }
             cancelGame()
             return
         }
@@ -696,34 +790,46 @@ open class TexasHoldem(val masterPlayer: Player, val maxSeat: Int, val minSeat: 
                 sleep(500)
             }
             setCommunityCard()
+
+            val dif=if(seatSize-foldedList.size==2)1 else 0
+
             //SBとBBの強制ベット
-            for (i in 0..1) {
-                turnCount+=i
+            var bbCount=0
+            var bbDifCount=0
+            while (bbCount<2) {
                 playerList[turnSeat()].addedChips = 1
                 if (playerList[turnSeat()].call()) {
                     setCoin(turnSeat())
                     playerList[turnSeat()].action=false
+                    bbCount++
                 }
+                turnCount+=1
+                bbDifCount++
             }
+            lastRaise=2
             turnCount=0
             //プリフロップ
-            actionTime(2)
+            actionTime(bbDifCount)
             openCommunityCard(0)
             openCommunityCard(1)
             openCommunityCard(2)
             //フロップ
-            actionTime(0)
+            actionTime(dif)
             openCommunityCard(3)
             //ターン
-            actionTime(0)
+            actionTime(dif)
             openCommunityCard(4)
             //リバー
-            actionTime(0)
+            actionTime(dif)
             playSoundAlPl(Sound.ITEM_BOOK_PAGE_TURN, 2F)
-            for (i in 0 until seatSize) if (!foldedList.contains(i)) openPlCard(i)
-            sleep(2000)
+            if(foldedList.size!=playerList.size-1){
+                for (i in 0 until seatSize) if (!foldedList.contains(i)) openPlCard(i)
+                sleep(2000)
+            }
 
-            showAndPayReward()
+            saveHandsData()
+
+            showAndPayReward((firstSeat+bbDifCount-1)%seatSize)
 
             sleep(4000)
             for(i in 0 until seatSize){

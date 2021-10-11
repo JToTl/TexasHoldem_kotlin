@@ -14,6 +14,10 @@ class PlayerCards {
         cards.clear()
     }
 
+    fun getCardName(dif:Int):String{
+        return cards[dif].getCardString()
+    }
+
     private fun sortCardNum(sortedCards:ArrayList<Card>){
         for(i in 0 until sortedCards.size)for(j in i+1 until sortedCards.size){
             if(sortedCards[j].num<sortedCards[i].num){
@@ -160,7 +164,7 @@ class PlayerCards {
                             break
                         }
                     }
-                    for (i in 6 downTo 4) {
+                    for (i in 6 downTo 0) {
                         if (judgedCards[i].num != judgedCards[k].num && judgedCards[i].num != judgedCards[r].num) {
                             hand += judgedCards[i].num * 10.0
                             break

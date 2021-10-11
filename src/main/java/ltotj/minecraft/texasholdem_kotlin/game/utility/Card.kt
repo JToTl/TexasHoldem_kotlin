@@ -10,6 +10,16 @@ import org.bukkit.inventory.ItemStack
 
 class Card (val suit:Int,val num:Int){
 
+    fun getCardString():String{
+        val str=StringBuilder()
+        when(suit){
+            0->str.append("スペ")
+            1->str.append("ダイ")
+            2->str.append("ハー")
+            3->str.append("クロ")
+        }
+        return str.append((num-1)%13+1).toString()
+    }
 
     fun getCard():ItemStack{
         if(num==-1){

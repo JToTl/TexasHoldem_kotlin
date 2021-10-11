@@ -92,7 +92,7 @@ class PlayerGUI(private val seat: Int,name: String){
     }
 
     fun setChips(seat: Int, amount: Int, rate: Int){
-        setGUIItem(chipPosition(seat), Material.GOLD_NUGGET, amount, "§l§yチップ", listOf("§c" + rate + "円"))
+        setGUIItem(chipPosition(seat), Material.GOLD_NUGGET, amount, "§l§yチップ", listOf("§e計${amount}枚","§e一枚§e" + rate + "円"))
     }
 
     fun setCoin(seat: Int, name: String, amount: Int){
@@ -126,28 +126,40 @@ class PlayerGUI(private val seat: Int,name: String){
         }
     }
 
-    fun setRaiseButton(){
-        for(i in 45..52){
-            setGUIItem(i, Material.valueOf(con.getString("raise.$i.material")), con.getString("raise.$i.name"))
+    fun setRaiseButton(minBet: Int){
+        for(i in 45..53){
+            setGUIItem(i, Material.WHITE_STAINED_GLASS_PANE,"")
         }
+        setGUIItem(45,Material.BARRIER,"§4§l戻る")
+        setGUIItem(46,Material.RED_WOOL,"§c§l賭けチップを一枚減らす")
+        reloadRaiseButton(minBet,minBet)
+        setGUIItem(52,Material.BLUE_WOOL,"§9§l賭けチップを一枚増やす")
     }
 
     fun setTurnPBlo(seat: Int){
         setGUIItem(chipPosition(seat) - 3, Material.DIAMOND_BLOCK, "§l§wターンプレイヤー")
     }
 
-    fun reloadRaiseButton(add:Int){
-        setGUIItem(49, Material.valueOf(con.getString("raise.49.material")), con.getString("raise.49.name"), listOf("§c" + add + "枚追加"))
+    fun reloadRaiseButton(add:Int,minBet:Int){
+        setGUIItem(49, Material.GOLD_NUGGET,add , "§a§l以下の枚数でチップを上乗せする", listOf("§c" + add + "枚追加","§d最小上乗せ枚数は§e${minBet}枚§dです"))
     }
 
     fun setActionButtons(){
-        for (i in 45..52) {
+        for (i in 45..53) {
             setActionButton(i)
         }
     }
 
     fun setActionButton(num:Int){
-        setGUIItem(num, Material.valueOf(con.getString("texasholdeminv.$num.material")), con.getString("texasholdeminv.$num.name"), listOf(con.getString("texasholdeminv.$num.lore")))
+        when(num){
+            46->setGUIItem(num,Material.BLUE_STAINED_GLASS_PANE,"§w§lフォールド")
+            47->setGUIItem(num,Material.PINK_STAINED_GLASS_PANE,"§w§lレイズ")
+            48->setGUIItem(num,Material.RED_STAINED_GLASS_PANE,"§w§lチェック")
+            49->setGUIItem(num,Material.YELLOW_STAINED_GLASS_PANE,"§w§lベット")
+            50->setGUIItem(num,Material.GREEN_STAINED_GLASS_PANE,"§w§lコール")
+            53->setGUIItem(num,Material.BROWN_STAINED_GLASS_PANE,"§w§lオールイン")
+            45,51,52->setGUIItem(num,Material.WHITE_STAINED_GLASS_PANE,"")
+        }
     }
 
     fun removeButton(){

@@ -153,7 +153,7 @@ class AllinORFold(masterPlayer: Player, maxSeat: Int, minSeat: Int, rate: Int) :
             for (i in 0 until seatSize) if (!foldedList.contains(i)) openPlCard(i)
             sleep(2000)
 
-            showAndPayReward()
+            showAndPayReward(0)
 
             sleep(4000)
             for (i in 0 until seatSize) {

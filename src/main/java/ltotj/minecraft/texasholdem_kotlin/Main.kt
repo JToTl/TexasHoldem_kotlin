@@ -53,6 +53,23 @@ class Main : JavaPlugin() {
         vault = VaultManager(this)
         server.pluginManager.registerEvents(TexasHoldem_Event,this)
         getCommand("poker")!!.setExecutor(TexasHoldem_Command)
+
+        executor.execute {
+            val mysql=MySQLManager(this,"TexasHoldem_onEnable")
+            mysql.execute("create table if not exists handsLog\n" +
+                    "(\n" +
+                    "    id int unsigned auto_increment,\n" +
+                    "    gameId int unsigned,\n" +
+                    "    P1card varchar(16) null,\n" +
+                    "    P2card varchar(16) null,\n" +
+                    "    P3card varchar(16) null,\n" +
+                    "    P4card varchar(16) null,\n" +
+                    "    community varchar(32) null,\n" +
+                    "    foldP varchar(20) null,\n" +
+                    "\n" +
+                    "    primary key(id)\n" +
+                    ");")
+        }
     }
 
     override fun onDisable() {
