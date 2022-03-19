@@ -699,6 +699,17 @@ open class TexasHoldem:Thread{
                     if(handsList.size==0)break;
                 }
             }
+
+            if(handsList.size==0){
+                for(playerData in playerList){
+                    if(playerData.totalBetAmount!=0){
+                        sendRewardGUI(playerData.seat,1)
+                        playerData.playerChips+=playerData.totalBetAmount
+                    }
+                }
+                break
+            }
+
             for(i in handsList[0]){
                 minBet= minBet.coerceAtMost(playerList[i].totalBetAmount)
             }
