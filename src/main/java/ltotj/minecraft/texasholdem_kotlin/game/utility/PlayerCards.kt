@@ -72,7 +72,7 @@ class PlayerCards {
                 straight = true
             }
             for (i in insCards.size - 5 downTo 0) {
-                if (insCards[i + 4].num == 4) {
+                if (insCards[i + 4].num - insCards[i].num == 4) {
                     hand = if (insCards[i + 4].num == 14) 1914131211100.0 + insCards[0].suit
                     else 1800000000000.0 + 1000000000.0 * insCards[i + 4].num + 10000000.0 * insCards[i + 3].num + 100000.0 * insCards[i + 2].num + 1000.0 * insCards[i + 1].num + 10.0 * insCards[i].num + 1.0*insCards[0].suit
                     straight = true

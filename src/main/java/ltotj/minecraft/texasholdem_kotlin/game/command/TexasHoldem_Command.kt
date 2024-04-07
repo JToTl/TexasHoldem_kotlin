@@ -171,11 +171,13 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                 else if (!Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.addPlayer(sender)) sender.sendMessage("既にゲームが始まっています")
             }
             "help" -> {
-                sender.sendMessage(arrayOf("§e==============[${Main.pluginTitle}]==============",
+                arrayOf("§e==============[${Main.pluginTitle}]==============",
                         "§e/poker start <チップ一枚あたりの金額:10000円以上> <最低募集人数:2〜4人> (最大募集人数:2〜4人) (周回数：1〜5) §d-> テキサスホールデムの参加者を募集します 参加人数分だけゲームが行われます §d設定金額×${Main.con.getInt("firstNumberOfChips")}円が必要です",
                         "§e/poker join <募集している人のID> §d-> テキサスホールデムに参加します",
                         "§e/poker open §d-> 参加中のゲーム画面を開きます",
-                        "§e/poker list §d-> 参加可能な部屋の一覧を表示します"))
+                        "§e/poker list §d-> 参加可能な部屋の一覧を表示します").forEach {
+                            sender.sendMessage(it)
+                }
             }
             "open" -> {
                 if (Main.currentPlayers.containsKey(uuid)) Main.texasHoldemTables[Main.currentPlayers[uuid]]!!.openInv(uuid)
