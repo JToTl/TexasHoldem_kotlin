@@ -10,6 +10,7 @@ import ltotj.minecraft.texasholdem_kotlin.game.TexasHoldem
 import ltotj.minecraft.texasholdem_kotlin.game.utility.Card
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
+import net.kyori.adventure.text.event.HoverEvent
 import org.bukkit.Bukkit
 import org.bukkit.Server
 import org.bukkit.command.Command
@@ -20,13 +21,23 @@ import org.bukkit.entity.Player
 import java.lang.System.out
 import java.sql.ResultSet
 import java.sql.SQLException
+import java.util.UUID
 import kotlin.math.abs
 
 
 object TexasHoldem_Command: CommandExecutor, TabCompleter {
 
+
+    val preJoinPlayersToManyRoundTimes=HashMap<Pair<String,UUID>,TexasHoldem>()
+
     fun createClickEventText_run(text:String,command:String):Component{
         return Component.text(text).clickEvent(ClickEvent.runCommand(command))
+    }
+
+    fun createHoverEventText(){
+        Component.text().hoverEvent(HoverEvent.showText(
+                Component.text("")
+        ))
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean{
@@ -117,7 +128,14 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                 val rate=args[1].toIntOrNull()?:0
                 val minSeat=args[2].toIntOrNull()?:2
                 val maxSeat=if(args.size<4) 4 else args[3].toIntOrNull()?:4
-                val roundTimes=if(args.size<5||args[4].toIntOrNull()==null||abs(args[4].toInt() - 3) >=3) 1 else args[4].toInt()
+                val roundTimes=if(args.size<5) 1 else args[4].toIntOrNull()?: kotlin.run {
+                    sender.sendMessage("周回回数は1~100000である必要があります")
+                    return true
+                }
+                if(roundTimes>100000||roundTimes<1){
+                    sender.sendMessage("周回回数は1~100000である必要があります")
+                    return true
+                }
                 val firstChips=if(args.size<6) 30 else args[5].toIntOrNull()?:Main.con.getInt("firstNumberOfChips")
                 if(firstChips<Main.con.getInt("firstNumberOfChips")||firstChips>200){
                     sender.sendMessage("初期チップ枚数は30以上200以下である必要があります")
@@ -131,13 +149,18 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                     sender.sendMessage("所持金が足りません")
                     return true
                 }
-                Main.texasHoldemTables[uuid]= TexasHoldem(sender,maxSeat,minSeat,rate,roundTimes,firstChips)
+                val time=if(args.size>6)args[6].toIntOrNull()?:0 else 30
+                if(time<30||time>180) {
+                    sender.sendMessage("持ち時間は30~180秒である必要があります")
+                    return true
+                }
+                Main.texasHoldemTables[uuid]= TexasHoldem(sender,maxSeat,minSeat,rate,roundTimes,firstChips,time)
                 Main.texasHoldemTables[uuid]?.addPlayer(sender)
                 if(firstChips==Main.con.getInt("firstNumberOfChips")){
-                    Bukkit.broadcast(Component.text("§l" + sender.name + "§aが§cチップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！  §4参加必要金額" + getYenString((args[1].toDouble() * Main.con.getDouble("firstNumberOfChips")))), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(Component.text("§l" + sender.name + "§aが§cチップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回、§e持ち時間${time}秒§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！  §4参加必要金額" + getYenString((args[1].toDouble() * Main.con.getDouble("firstNumberOfChips")))), Server.BROADCAST_CHANNEL_USERS)
                 }
                 else{
-                    Bukkit.broadcast(Component.text("§l" + sender.name + "§aが§c初期チップ${firstChips}枚・チップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！  §4参加必要金額" + getYenString((args[1].toDouble() * firstChips))), Server.BROADCAST_CHANNEL_USERS)
+                    Bukkit.broadcast(Component.text("§l" + sender.name + "§aが§c初期チップ${firstChips}枚・チップ一枚" + getYenString(args[1].toDouble()) + "§r、§l§e募集人数" + args[2] + "〜" + Main.texasHoldemTables[uuid]!!.maxSeat + "人、§c周回数" + Main.texasHoldemTables[uuid]!!.roundTimes + "回、§e持ち時間${time}秒§aで§7§lテキサスホールデム§aを募集中！§r/poker join " + sender.name + " §l§aで参加しましょう！  §4参加必要金額" + getYenString((args[1].toDouble() * firstChips))), Server.BROADCAST_CHANNEL_USERS)
                 }
                 Bukkit.broadcast(createClickEventText_run("§e§l[ここをクリックでポーカーに参加]","/poker join ${sender.name}"))
                 Main.texasHoldemTables[uuid]?.start()
@@ -168,7 +191,58 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                 else if (args.size < 2) sender.sendMessage("/poker join <募集している人のID>")
                 else if (Bukkit.getPlayer(args[1]) == null || !Main.texasHoldemTables.containsKey(Bukkit.getPlayerUniqueId(args[1]))) sender.sendMessage(args[1] + "さんはゲームを開催していません")
                 else if (Main.vault.getBalance(sender.uniqueId) < Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.rate * Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.firstChips) sender.sendMessage("所持金が足りません")
+
+                //歪すぎ
+                else if (!Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.isRunning&&Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.roundTimes>20&& !preJoinPlayersToManyRoundTimes.contains(sender.uniqueId)){
+
+                    preJoinPlayersToManyRoundTimes.filter { it.key.second==sender.uniqueId }.keys.forEach {
+                        preJoinPlayersToManyRoundTimes.remove(it)
+                    }
+
+                    sender.sendMessage("§c§l[警告!!] 参加しようとしているゲームは周回数が§e§l${Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.roundTimes}§c§lのゲームです。非常に長い時間、もしくは参加者のうちの一人がチップを全て回収するまでゲームが続く可能性があります。以上を理解した上でなお参加したい場合は、以下のコマンドを入力してください。")
+
+                    val confirmKey=UUID.randomUUID().toString().subSequence(0, 8).toString()
+                    preJoinPlayersToManyRoundTimes[Pair(confirmKey,sender.uniqueId)]=Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!
+
+                    sender.sendMessage("/poker confirm $confirmKey")
+                    return true
+                }
                 else if (!Main.texasHoldemTables[Bukkit.getPlayerUniqueId(args[1])]!!.addPlayer(sender)) sender.sendMessage("既にゲームが始まっています")
+            }
+            "confirm"->{
+                if (!playable.get()) {
+                    sender.sendMessage("[${Main.pluginTitle}]はただいま停止中です")
+                    return true
+                }
+                if (Main.currentPlayers.containsKey(uuid)){
+                    sender.sendMessage("あなたは既にゲームに参加しています！/poker open でゲーム画面を開きましょう！")
+                    return true
+                }
+                if(args.size<2){
+                    sender.sendMessage("コマンドが違います")
+                    return true
+                }
+                val key=Pair(args[1],sender.uniqueId)
+                val pokerGame= preJoinPlayersToManyRoundTimes[key]?: kotlin.run {
+                    sender.sendMessage("コマンドが違います")
+                    return true
+                }
+                if(!Main.texasHoldemTables.values.contains(pokerGame)){
+                    sender.sendMessage("既にゲームが終了しています")
+                    preJoinPlayersToManyRoundTimes.remove(key)
+                    return true
+                }
+                if (Main.vault.getBalance(sender.uniqueId) < pokerGame.rate * pokerGame.firstChips) {
+                    sender.sendMessage("所持金が足りません")
+                    return true
+                }
+                if(!pokerGame.addPlayer(sender)){
+                    sender.sendMessage("既にゲームが始まっています")
+                    preJoinPlayersToManyRoundTimes.remove(key)
+                    return true
+                }
+                preJoinPlayersToManyRoundTimes.remove(key)
+
             }
             "help" -> {
                 arrayOf("§e==============[${Main.pluginTitle}]==============",
@@ -213,10 +287,11 @@ object TexasHoldem_Command: CommandExecutor, TabCompleter {
                         }
                     }
                 }
-                3, 4, 5 -> if (args[0] == "start") {
+                3, 4, 5,6,7 -> if (args[0] == "start") {
                     if (args.size == 3) return mutableListOf("最小募集人数（2〜4人）")
                     if (args.size == 4) return mutableListOf("最大募集人数（2〜4人）")
-                    if (args.size == 5) return mutableListOf("周回数（1〜5）")
+                    if (args.size == 5) return mutableListOf("周回数（1〜100000）")
+                    if (args.size == 6) return mutableListOf("チップ数")
                 }
             }
         }

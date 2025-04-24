@@ -50,6 +50,7 @@ open class TexasHoldem:Thread{
     var roundTimes:Int
 
 
+    //なにこれ?
     constructor(masterPlayer: Player, maxSeat: Int,minSeat: Int,rate: Int){
         this.masterPlayer=masterPlayer
         this.maxSeat=maxSeat
@@ -59,6 +60,7 @@ open class TexasHoldem:Thread{
         firstChips=con.getInt("firstNumberOfChips")
     }
 
+    //使ってないやん
     constructor(masterPlayer: Player, maxSeat: Int,minSeat: Int,rate: Int,roundTimes:Int){
         this.masterPlayer=masterPlayer
         this.maxSeat=maxSeat
@@ -68,13 +70,15 @@ open class TexasHoldem:Thread{
         firstChips=con.getInt("firstNumberOfChips")
     }
 
-    constructor(masterPlayer: Player, maxSeat: Int,minSeat: Int,rate: Int,roundTimes:Int,firstChips:Int) {
+    //歪なう
+    constructor(masterPlayer: Player, maxSeat: Int,minSeat: Int,rate: Int,roundTimes:Int,firstChips:Int,turnPlayerTime:Int=30) {
         this.masterPlayer = masterPlayer
         this.maxSeat = maxSeat
         this.minSeat = minSeat
         this.rate = rate
         this.roundTimes=roundTimes
         this.firstChips=firstChips
+        this.turnPlayerTime=turnPlayerTime
     }
 
 
@@ -90,6 +94,7 @@ open class TexasHoldem:Thread{
     var foldedList=ArrayList<Int>()
     var allInList=ArrayList<Int>()
     var isRunning=false
+    private var turnPlayerTime=30
     private val mySQL = MySQLManager(Main.plugin, "TexasHoldem")
     private var gameId=0
 
@@ -230,7 +235,7 @@ open class TexasHoldem:Thread{
             playerData.preCall.set(false)
             playerData.player.playSound(playerData.player.location, Sound.BLOCK_NOTE_BLOCK_BELL, 2F, 2F)
             if (!foldedList.contains(turnSeat()) && !allInList.contains(turnSeat())) {
-                for (i in 600 downTo 0) {
+                for (i in turnPlayerTime*20 downTo 0) {
                     sleep(50)
                     if (i % 20 == 0) {
                         playSoundAlPl(Sound.BLOCK_STONE_BUTTON_CLICK_ON, 2F)
@@ -560,7 +565,11 @@ open class TexasHoldem:Thread{
     }
 
     protected fun setClock(time: Int){
-        setItemAlPl(19, ItemStack(Material.CLOCK, time))
+        val item=ItemStack(Material.CLOCK, if(time>64)64 else time)
+        val meta=item.itemMeta
+        meta.displayName(Component.text("§a残り§e${time}§a秒"))
+        item.itemMeta=meta
+        setItemAlPl(19, item)
     }
 
     protected open fun setGUI(turnS: Int){
