@@ -210,6 +210,7 @@ open class TexasHoldem:Thread{
             instBet=0
             totalBetAmount=0
             playerCards.reset()
+            action=false
             preCall.set(false)
             for(playerData in playerList)playerGUI.setCoin(playerData.seat, playerData.player.name, playerData.playerChips)
         }
@@ -251,10 +252,10 @@ open class TexasHoldem:Thread{
                         playerList[turnSeat()].call()
                     }
                     if (playerList[turnSeat()].action) {
-                        playerList[turnSeat()].action = false
                         break
                     }
                 }
+                playerList[turnSeat()].action = false
             }
             playerList[turnSeat()].playerGUI.removeButton()
             removeItem(chipPosition(turnSeat()) - 3)
